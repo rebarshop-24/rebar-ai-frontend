@@ -13,18 +13,22 @@ async function sendDrawing() {
 
   const formData = new FormData();
   formData.append("file", fileInput.files[0]);
+  formData.append("email", "ai@rebar.shop"); // temporary email for API call
 
   appendMessage("user", "[Uploaded a drawing]");
   appendMessage("assistant", "⏳ Processing...");
 
   try {
-    const response = await fetch("https://rebar-ai-backend.onrender.com/ask", {
+    const response = await fetch("https://rebar-ai-backend.onrender.com/api/parse-drawing", {
       method: "POST",
       body: formData,
     });
-    const result = await response.text();
-    appendMessage("assistant", result);
-    saveMemory("drawing", result);
+    const result = await response.json();
+    if (result.success) {
+      appendMessage("assistant", JSON.stringify(result.data, null, 2));
+    } else {
+      appendMessage("assistant", result.error || "Follow-up required.");
+    }
   } catch (err) {
     appendMessage("assistant", "❌ Error: " + err.message);
   }
@@ -40,14 +44,13 @@ async function sendChat() {
   appendMessage("assistant", "⏳ Thinking...");
 
   try {
-    const response = await fetch("https://rebar-ai-backend.onrender.com/chat", {
+    const response = await fetch("https://rebar-ai-backend.onrender.com/api/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ message: msg }),
     });
-    const data = await response.text();
-    appendMessage("assistant", data);
-    saveMemory("chat", { question: msg, answer: data });
+    const data = await response.json();
+    appendMessage("assistant", data.reply);
   } catch (err) {
     appendMessage("assistant", "❌ Error: " + err.message);
   }
@@ -62,10 +65,4 @@ function startVoice() {
     sendChat();
   };
   recognition.start();
-}
-
-function saveMemory(type, data) {
-  const logs = JSON.parse(localStorage.getItem("rebarMemory") || "[]");
-  logs.push({ time: new Date().toISOString(), type, data });
-  localStorage.setItem("rebarMemory", JSON.stringify(logs));
 }
