@@ -1,0 +1,29 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Rebar AI Assistant</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <h1>🧠 Rebar AI Assistant</h1>
+
+  <section>
+    <h2>ChatBot</h2>
+    <textarea id="chatInput" placeholder="Ask anything..."></textarea>
+    <button onclick="sendChat()">Send</button>
+    <pre id="chatResponse"></pre>
+  </section>
+
+  <section>
+    <h2>BlueprintBot</h2>
+    <input type="file" id="blueprintFile" />
+    <button onclick="uploadBlueprint()">Upload & Parse</button>
+    <pre id="blueprintResponse"></pre>
+  </section>
+
+  <script src="script.js"></script>
+</body>
+</html>
