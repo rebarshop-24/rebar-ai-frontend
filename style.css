@@ -1,0 +1,13 @@
+
+body {
+  margin: 0;
+  font-family: 'Segoe UI', sans-serif;
+  background: linear-gradient(to bottom right, #111827, #1F2937);
+  color: white;
+}
+button {
+  cursor: pointer;
+}
+textarea, input {
+  border-radius: 0.5rem;
+}
