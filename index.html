@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Rebar AI Assistant</title>
   <link rel="stylesheet" href="style.css" />
 </head>
@@ -11,17 +11,23 @@
   <div class="container">
     <h1>🦾 Rebar AI Assistant</h1>
     <p>This is the Rebar ChatBot and BlueprintBot UI with glassmorphism design.</p>
-    <div class="card">
+
+    <div class="card glass">
       <h2>💬 ChatBot</h2>
-      <textarea placeholder="Ask about pricing, quantity..." rows="4"></textarea>
-      <button>Send</button>
+      <textarea id="chatInput" placeholder="Type your message..."></textarea>
+      <button id="sendBtn" type="button">Send</button>
+      <div id="chatResponse"></div>
     </div>
-    <div class="card">
+
+    <div class="card glass">
       <h2>📐 BlueprintBot</h2>
-      <input type="file" />
-      <input type="email" placeholder="Your email" />
-      <button>Upload</button>
+      <input type="file" id="fileInput" />
+      <input type="email" id="emailInput" placeholder="Enter your email" />
+      <button id="uploadBtn" type="button">Upload</button>
+      <div id="blueprintResponse"></div>
     </div>
   </div>
+
+  <script src="script.js"></script>
 </body>
 </html>
