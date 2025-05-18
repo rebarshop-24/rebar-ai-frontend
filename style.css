@@ -1,18 +1,49 @@
 
 body {
   margin: 0;
-  font-family: 'Segoe UI', sans-serif;
-  background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+  font-family: sans-serif;
+  background: linear-gradient(135deg, #1f1f2e, #2e2e3f);
   color: white;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  flex-direction: column;
 }
 
-.glass-card {
-  background: rgba(255, 255, 255, 0.05);
+.container {
+  text-align: center;
+  max-width: 700px;
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 20px;
-  padding: 2rem;
   backdrop-filter: blur(12px);
-  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  max-width: 600px;
-  margin: 2rem auto;
+  -webkit-backdrop-filter: blur(12px);
+  padding: 20px;
+  margin-top: 20px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+textarea, input, button {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 10px;
+  border: none;
+  font-size: 16px;
+}
+
+button {
+  background: #4f46e5;
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+button:hover {
+  background: #4338ca;
 }
