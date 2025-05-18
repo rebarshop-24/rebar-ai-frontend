@@ -1,43 +1,46 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 
-function App() {
-  const [input, setInput] = useState('');
+export default function App() {
   const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState('');
 
   const sendMessage = async () => {
     if (!input.trim()) return;
-    setMessages([...messages, { sender: 'user', text: input }]);
+
+    const userMessage = { role: 'user', text: input };
+    setMessages([...messages, userMessage]);
     setInput('');
-    const response = await fetch('https://rebar-ai-backend.onrender.com/api/chat', {
+
+    const res = await fetch('/api/chat', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: input })
+      body: JSON.stringify({ message: input }),
     });
-    const data = await response.json();
-    setMessages(m => [...m, { sender: 'bot', text: data.reply || 'No reply' }]);
+
+    const data = await res.json();
+    const aiMessage = { role: 'ai', text: data.reply || 'Error' };
+    setMessages(prev => [...prev, aiMessage]);
   };
 
   return (
-    <div>
-      <h1>🤖 Rebar AI Assistant</h1>
-      <div>
-        {messages.map((msg, idx) => (
-          <div key={idx}>
-            <strong>{msg.sender === 'user' ? '🧑 You' : '🤖 Rebar AI'}</strong>
-            <div>{msg.text}</div>
+    <div className="p-4 max-w-2xl mx-auto">
+      <h1 className="text-3xl font-bold mb-4">🤖 Rebar AI Assistant</h1>
+      <div className="space-y-2">
+        {messages.map((msg, i) => (
+          <div key={i} className={msg.role === 'user' ? 'text-right' : 'text-left'}>
+            <span className="inline-block px-3 py-2 bg-white rounded shadow">{msg.text}</span>
           </div>
         ))}
       </div>
-      <input
-        type="text"
-        placeholder="Ask a question..."
-        value={input}
-        onChange={e => setInput(e.target.value)}
-        onKeyDown={e => e.key === 'Enter' && sendMessage()}
-      />
-      <button onClick={sendMessage}>Send</button>
+      <div className="mt-4 flex">
+        <input
+          className="flex-1 p-2 border rounded-l"
+          placeholder="Ask a question..."
+          value={input}
+          onChange={e => setInput(e.target.value)}
+        />
+        <button onClick={sendMessage} className="bg-blue-600 text-white px-4 rounded-r">Send</button>
+      </div>
     </div>
   );
 }
-
-export default App;
