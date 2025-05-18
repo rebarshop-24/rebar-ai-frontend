@@ -2,12 +2,17 @@
 body {
   margin: 0;
   font-family: 'Segoe UI', sans-serif;
-  background: linear-gradient(to bottom right, #111827, #1F2937);
+  background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
   color: white;
 }
-button {
-  cursor: pointer;
-}
-textarea, input {
-  border-radius: 0.5rem;
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 20px;
+  padding: 2rem;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  max-width: 600px;
+  margin: 2rem auto;
 }
