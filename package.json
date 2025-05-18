@@ -1,1 +1,0 @@
-{"name": "rebar-ai-frontend", "version": "1.0.0", "type": "module", "scripts": {"dev": "vite", "build": "vite build", "serve": "vite preview"}, "dependencies": {}, "devDependencies": {"vite": "^4.5.0"}}
