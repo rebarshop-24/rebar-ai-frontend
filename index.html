@@ -1,13 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" href="/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Rebar AI Assistant</title>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rebar AI Assistant</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="container">
+    <h1>🤖 Rebar AI Assistant</h1>
+    <div id="chatBox" class="chat-box"></div>
+    <div class="input-group">
+      <input id="chatInput" type="text" placeholder="Ask a question..." />
+      <button onclick="sendChat()">🚀</button>
+      <button onclick="startVoice()">🎤</button>
+      <input type="file" id="drawingUpload" />
+      <button onclick="uploadFile()">📤</button>
+    </div>
+  </div>
+  <script src="script.js"></script>
+</body>
 </html>
