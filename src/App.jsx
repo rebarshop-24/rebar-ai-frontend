@@ -1,45 +1,47 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 
 export default function App() {
   const [messages, setMessages] = useState([]);
-  const [input, setInput] = useState('');
+  const [input, setInput] = useState("");
 
-  const sendMessage = async () => {
+  const sendMessage = () => {
     if (!input.trim()) return;
-
-    const userMessage = { role: 'user', text: input };
-    setMessages([...messages, userMessage]);
-    setInput('');
-
-    const res = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: input }),
-    });
-
-    const data = await res.json();
-    const aiMessage = { role: 'ai', text: data.reply || 'Error' };
-    setMessages(prev => [...prev, aiMessage]);
+    setMessages([...messages, { role: "user", text: input }]);
+    setMessages(prev => [...prev, { role: "ai", text: "Thinking..." }]);
+    setInput("");
   };
 
   return (
-    <div className="p-4 max-w-2xl mx-auto">
-      <h1 className="text-3xl font-bold mb-4">🤖 Rebar AI Assistant</h1>
-      <div className="space-y-2">
-        {messages.map((msg, i) => (
-          <div key={i} className={msg.role === 'user' ? 'text-right' : 'text-left'}>
-            <span className="inline-block px-3 py-2 bg-white rounded shadow">{msg.text}</span>
+    <div className="flex flex-col items-center p-4 min-h-screen bg-gradient-to-b from-white to-gray-100">
+      <h1 className="text-3xl font-bold mb-6 flex items-center gap-2">
+        🤖 Rebar AI Assistant
+      </h1>
+
+      <div className="w-full max-w-xl space-y-4 flex-grow">
+        {messages.map((msg, idx) => (
+          <div key={idx} className={msg.role === "user" ? "text-right" : "text-left"}>
+            <div className={
+              `inline-block px-4 py-2 rounded-lg 
+              ${msg.role === "user" ? "bg-blue-500 text-white" : "bg-gray-200 text-black"}`
+            }>
+              {msg.text}
+            </div>
           </div>
         ))}
       </div>
-      <div className="mt-4 flex">
+
+      <div className="mt-6 w-full max-w-xl flex gap-2">
         <input
-          className="flex-1 p-2 border rounded-l"
-          placeholder="Ask a question..."
+          type="text"
           value={input}
           onChange={e => setInput(e.target.value)}
+          onKeyDown={e => e.key === "Enter" && sendMessage()}
+          placeholder="Ask a question..."
+          className="flex-grow px-4 py-2 border rounded shadow"
         />
-        <button onClick={sendMessage} className="bg-blue-600 text-white px-4 rounded-r">Send</button>
+        <button onClick={sendMessage} className="bg-blue-600 text-white px-4 py-2 rounded shadow">
+          Send
+        </button>
       </div>
     </div>
   );
