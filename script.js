@@ -1,38 +1,65 @@
 
-document.getElementById("sendBtn").onclick = async () => {
-  const msg = document.getElementById("chatInput").value;
-  const resBox = document.getElementById("chatResponse");
-  resBox.textContent = "⏳ Thinking...";
-  try {
-    const res = await fetch("/api/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: msg })
-    });
-    const data = await res.json();
-    resBox.textContent = data.reply || "❌ Error in response.";
-  } catch (err) {
-    resBox.textContent = "❌ " + err.message;
-  }
-};
+document.addEventListener("DOMContentLoaded", () => {
+  const chatForm = document.getElementById("chat-form");
+  const chatInput = document.getElementById("chat-input");
+  const chatOutput = document.getElementById("chat-output");
 
-document.getElementById("uploadBtn").onclick = async () => {
-  const file = document.getElementById("fileInput").files[0];
-  const email = document.getElementById("emailInput").value;
-  const resBox = document.getElementById("blueprintResponse");
-  if (!file || !email) return alert("File and email required.");
-  const formData = new FormData();
-  formData.append("file", file);
-  formData.append("email", email);
-  resBox.textContent = "⏳ Uploading...";
-  try {
-    const res = await fetch("/api/parse-drawing", {
-      method: "POST",
-      body: formData
-    });
-    const data = await res.json();
-    resBox.textContent = JSON.stringify(data, null, 2);
-  } catch (err) {
-    resBox.textContent = "❌ " + err.message;
-  }
-};
+  const blueprintForm = document.getElementById("blueprint-form");
+  const blueprintInput = document.getElementById("blueprint-file");
+  const emailInput = document.getElementById("email");
+  const blueprintOutput = document.getElementById("blueprint-output");
+
+  chatForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const message = chatInput.value;
+    chatOutput.textContent = "🤖 Thinking...";
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message }),
+      });
+
+      if (!res.ok) {
+        throw new Error("❌ Server returned error " + res.status);
+      }
+
+      const data = await res.json();
+      chatOutput.textContent = "🤖 " + (data.reply || "No response.");
+    } catch (err) {
+      chatOutput.textContent = "❌ Error: " + err.message;
+    }
+  });
+
+  blueprintForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const file = blueprintInput.files[0];
+    const email = emailInput.value;
+    if (!file || !email) {
+      blueprintOutput.textContent = "❌ Please select a file and enter your email.";
+      return;
+    }
+
+    blueprintOutput.textContent = "📐 Parsing...";
+
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("email", email);
+
+    try {
+      const res = await fetch("/api/parse-drawing", {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        throw new Error("❌ Server returned error " + res.status);
+      }
+
+      const data = await res.json();
+      blueprintOutput.textContent = JSON.stringify(data, null, 2);
+    } catch (err) {
+      blueprintOutput.textContent = "❌ Error: " + err.message;
+    }
+  });
+});
