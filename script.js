@@ -20,7 +20,10 @@ function sendMessage() {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ messages: [{ role: 'user', content: text }] })
   })
-    .then(res => res.ok ? res.json() : Promise.reject({ message: 'No response from server.' }))
+    .then(res => {
+      if (!res.ok) throw new Error('No response from server.');
+      return res.json();
+    })
     .then(data => addMessage('ai', data.reply))
     .catch(err => addMessage('ai', '⚠️ ' + err.message));
 }
@@ -39,7 +42,10 @@ function uploadFile() {
     method: 'POST',
     body: formData
   })
-    .then(res => res.ok ? res.json() : Promise.reject({ message: 'File upload failed.' }))
+    .then(res => {
+      if (!res.ok) throw new Error('File upload failed.');
+      return res.json();
+    })
     .then(data => addMessage('ai', data.reply))
     .catch(err => addMessage('ai', '⚠️ ' + err.message));
 }
