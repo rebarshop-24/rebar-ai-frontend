@@ -9,44 +9,57 @@ function addMessage(role, content) {
   chatBox.scrollTop = chatBox.scrollHeight;
 }
 
-function sendMessage() {
+async function sendMessage() {
   const text = userInput.value.trim();
   if (!text) return;
+
   addMessage('user', text);
   userInput.value = '';
 
-  fetch('/api/chat', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ messages: [{ role: 'user', content: text }] })
-  })
-    .then(res => res.json())
-    .then(data => addMessage('ai', data.reply))
-    .catch(err => addMessage('ai', 'Error: ' + err.message));
+  try {
+    const response = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: [{ role: 'user', content: text }] })
+    });
+
+    const raw = await response.text();
+    const data = raw ? JSON.parse(raw) : { reply: '⚠️ No response from server.' };
+
+    addMessage('ai', data.reply);
+  } catch (err) {
+    addMessage('ai', `❌ Error: ${err.message}`);
+  }
 }
 
-function uploadFile() {
+async function uploadFile() {
   const fileInput = document.getElementById('fileInput');
   const file = fileInput.files[0];
   if (!file) return;
 
-  addMessage('user', `Uploaded file: ${file.name}`);
+  addMessage('user', `📎 Uploaded file: ${file.name}`);
 
   const formData = new FormData();
   formData.append('file', file);
 
-  fetch('/api/parse-drawing', {
-    method: 'POST',
-    body: formData
-  })
-    .then(res => res.json())
-    .then(data => addMessage('ai', data.reply))
-    .catch(err => addMessage('ai', 'Upload error: ' + err.message));
+  try {
+    const response = await fetch('/api/parse-drawing', {
+      method: 'POST',
+      body: formData
+    });
+
+    const raw = await response.text();
+    const data = raw ? JSON.parse(raw) : { reply: '⚠️ No response from file parser.' };
+
+    addMessage('ai', data.reply);
+  } catch (err) {
+    addMessage('ai', `❌ Upload error: ${err.message}`);
+  }
 }
 
 function startListening() {
   if (!('webkitSpeechRecognition' in window)) {
-    alert('Speech Recognition not supported');
+    alert('🎙️ Speech recognition not supported.');
     return;
   }
 
@@ -62,7 +75,7 @@ function startListening() {
   };
 
   recognition.onerror = (event) => {
-    addMessage('ai', 'Voice error: ' + event.error);
+    addMessage('ai', `🎙️ Voice error: ${event.error}`);
   };
 
   recognition.start();
