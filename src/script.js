@@ -1,75 +1,56 @@
-document.addEventListener("DOMContentLoaded", () => {
-  const chatContainer = document.getElementById("chat");
-  const input = document.getElementById("chat-input");
-  const sendBtn = document.getElementById("send-btn");
-  const voiceBtn = document.getElementById("voice-btn");
-  const uploadBtn = document.getElementById("upload-btn");
+const chatBox = document.getElementById("chatBox");
 
-  const BACKEND_URL = "https://rebar-ai-backend.onrender.com/api/chat";
+function appendMessage(sender, text) {
+  const msg = document.createElement("div");
+  msg.innerHTML = `<strong>${sender}:</strong> ${text}`;
+  chatBox.appendChild(msg);
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
 
-  function addMessage(sender, text) {
-    const msgDiv = document.createElement("div");
-    msgDiv.className = "message";
-    msgDiv.innerHTML = `<strong>${sender}:</strong> ${text}`;
-    chatContainer.appendChild(msgDiv);
-    chatContainer.scrollTop = chatContainer.scrollHeight;
-  }
+function sendChat() {
+  const input = document.getElementById("chatInput");
+  const text = input.value.trim();
+  if (!text) return;
+  appendMessage("🧠 You", text);
+  input.value = "";
 
-  function sendMessage() {
-    const msg = input.value.trim();
-    if (!msg) return;
+  fetch("https://rebar-ai-backend.onrender.com/api/chat", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message: text })
+  })
+    .then(res => res.json())
+    .then(data => appendMessage("🤖 Rebar AI", data.reply || "No response."))
+    .catch(() => appendMessage("🤖 Rebar AI", "❌ Server error"));
+}
 
-    addMessage("🧠 You", msg);
-    input.value = "";
+function startVoice() {
+  const rec = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+  rec.lang = "en-US";
+  rec.onresult = event => {
+    document.getElementById("chatInput").value = event.results[0][0].transcript;
+  };
+  rec.start();
+}
 
-    fetch(BACKEND_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ message: msg })
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.reply) {
-          addMessage("🤖 Rebar AI", data.reply);
-        } else {
-          addMessage("🤖 Rebar AI", "⚠️ No reply received.");
-        }
-      })
-      .catch(err => {
-        console.error(err);
-        addMessage("🤖 Rebar AI", "❌ Server error.");
-      });
-  }
+function uploadFile() {
+  const file = document.getElementById("drawingUpload").files[0];
+  if (!file) return alert("Upload a file first.");
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("email", "test@example.com");
 
-  function startVoiceInput() {
-    const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-    recognition.lang = "en-US";
-    recognition.onresult = event => {
-      input.value = event.results[0][0].transcript;
-      sendMessage(); // auto-send after speech
-    };
-    recognition.start();
-  }
-
-  function handleUpload() {
-    const fileInput = document.createElement("input");
-    fileInput.type = "file";
-    fileInput.accept = ".pdf,.jpg,.jpeg,.png,.txt";
-    fileInput.onchange = () => {
-      const file = fileInput.files[0];
-      if (file) {
-        addMessage("📁 Upload", `Received: ${file.name}`);
-        // You can trigger your Gemini parsing API here
+  fetch("https://rebar-ai-backend.onrender.com/api/parse-drawing", {
+    method: "POST",
+    body: formData
+  })
+    .then(res => res.json())
+    .then(data => {
+      if (data.success) {
+        appendMessage("🤖 Rebar AI", "✅ Drawing processed.");
+      } else {
+        appendMessage("🤖 Rebar AI", data.error || data.question || "❌ Failed");
       }
-    };
-    fileInput.click();
-  }
-
-  sendBtn.onclick = sendMessage;
-  voiceBtn.onclick = startVoiceInput;
-  uploadBtn.onclick = handleUpload;
-
-  input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") sendMessage();
-  });
-});
+    })
+    .catch(() => appendMessage("🤖 Rebar AI", "❌ Upload error"));
+}
