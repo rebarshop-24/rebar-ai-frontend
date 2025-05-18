@@ -1,66 +1,49 @@
 
 body {
-  margin: 0;
   font-family: 'Segoe UI', sans-serif;
-  background: radial-gradient(circle at top, #1e1e2f, #12121c);
-  color: #fff;
+  background: radial-gradient(circle at top left, #1a1c2b, #101119);
+  color: white;
   text-align: center;
+  padding: 2rem;
 }
 
 .container {
-  max-width: 640px;
-  margin: auto;
-  padding: 40px 20px;
-}
-
-h1 {
-  font-size: 2.2rem;
-  margin-bottom: 10px;
-}
-
-p {
-  color: #ccc;
-  margin-bottom: 30px;
+  max-width: 700px;
+  margin: 0 auto;
 }
 
 .card {
-  padding: 20px;
-  margin: 20px 0;
-  border-radius: 20px;
   background: rgba(255, 255, 255, 0.05);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
+  border-radius: 20px;
   backdrop-filter: blur(10px);
+  padding: 1.5rem;
+  margin-top: 2rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.25);
 }
 
 textarea, input[type="email"] {
   width: 100%;
-  padding: 10px;
+  padding: 0.75rem;
+  margin-top: 1rem;
   border-radius: 10px;
   border: none;
-  margin: 10px 0;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
 }
 
 button {
-  background: #5f4efc;
-  color: white;
-  font-weight: bold;
-  padding: 10px 20px;
+  margin-top: 1rem;
+  padding: 0.5rem 2rem;
   border: none;
   border-radius: 10px;
+  background: #5c6eff;
+  color: white;
   cursor: pointer;
-  margin-top: 10px;
 }
 
-button:hover {
-  background: #483bd0;
-}
-
-#chatResponse, #blueprintResponse {
-  margin-top: 10px;
-  white-space: pre-wrap;
-  text-align: left;
-  background: #1c1c2a;
-  padding: 10px;
-  border-radius: 8px;
-  font-size: 0.9rem;
+.response {
+  margin-top: 1rem;
+  padding: 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
 }

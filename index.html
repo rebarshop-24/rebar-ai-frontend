@@ -12,22 +12,21 @@
     <h1>🦾 Rebar AI Assistant</h1>
     <p>This is the Rebar ChatBot and BlueprintBot UI with glassmorphism design.</p>
 
-    <div class="card glass">
+    <div class="card">
       <h2>💬 ChatBot</h2>
-      <textarea id="chatInput" placeholder="Type your message..."></textarea>
-      <button id="sendBtn" type="button">Send</button>
-      <div id="chatResponse"></div>
+      <textarea id="chatInput" placeholder="Type your message here..."></textarea>
+      <button id="chatBtn">Send</button>
+      <div id="chatResponse" class="response"></div>
     </div>
 
-    <div class="card glass">
+    <div class="card">
       <h2>📐 BlueprintBot</h2>
-      <input type="file" id="fileInput" />
+      <input type="file" id="blueprintFile" />
       <input type="email" id="emailInput" placeholder="Enter your email" />
-      <button id="uploadBtn" type="button">Upload</button>
-      <div id="blueprintResponse"></div>
+      <button id="uploadBtn">Upload</button>
+      <div id="uploadResponse" class="response"></div>
     </div>
   </div>
-
   <script src="script.js"></script>
 </body>
 </html>
