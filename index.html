@@ -1,75 +1,71 @@
 
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Rebar AI - Blueprint Parser</title>
-  <style>
-    body { font-family: Arial; background: #f4f4f4; padding: 20px; }
-    input, button, label { margin-top: 10px; display: block; }
-    pre { background: #fff; padding: 10px; border: 1px solid #ccc; overflow: auto; max-height: 400px; margin-top: 20px; }
-    .toggle { margin-top: 10px; }
-  </style>
+  <title>Upload Rebar Blueprints</title>
 </head>
 <body>
   <h1>Upload Rebar Blueprints</h1>
-  <input type="file" id="fileInput" multiple />
 
-  <div class="toggle">
-    <label><input type="radio" name="parseMode" value="table" checked /> Extract Bar Table (JSON)</label>
-    <label><input type="radio" name="parseMode" value="estimate" /> Generate Estimate Report (Text)</label>
-  </div>
-
+  <input type="file" multiple id="fileInput" />
+  <br />
+  <label><input type="radio" name="mode" value="json" checked /> Extract Bar Table (JSON)</label><br />
+  <label><input type="radio" name="mode" value="text" /> Generate Estimate Report (Text)</label><br />
   <button onclick="uploadAndParse()">Upload + Parse</button>
-  <div id="results"></div>
+
+  <h3 id="filename"></h3>
+  <pre id="output">...</pre>
 
   <script>
-    const backendUrl = "https://rebar-ai-backend.onrender.com/api";
-
-    function getSelectedMode() {
-      return document.querySelector('input[name="parseMode"]:checked').value;
-    }
-
     async function uploadAndParse() {
-      const input = document.getElementById("fileInput");
-      const files = input.files;
-      const resultsDiv = document.getElementById("results");
-      if (!files.length) return alert("Please select at least one file.");
+      const fileInput = document.getElementById("fileInput");
+      const files = fileInput.files;
+      const output = document.getElementById("output");
+      const filenameEl = document.getElementById("filename");
 
-      const formData = new FormData();
-      for (let file of files) {
-        formData.append("files", file);
+      output.textContent = "...";
+      filenameEl.textContent = "";
+
+      if (!files || files.length === 0) {
+        alert("Please select a file.");
+        return;
       }
 
-      const uploadRes = await fetch(`${backendUrl}/upload-blueprints`, {
-        method: "POST",
-        body: formData
-      });
-      const uploadData = await uploadRes.json();
+      const formData = new FormData();
+      for (let i = 0; i < files.length; i++) {
+        formData.append("files", files[i]);
+      }
 
-      resultsDiv.innerHTML = "";
-      for (let filePath of uploadData.files) {
-        const endpoint = getSelectedMode() === "estimate"
-          ? "/parse-blueprint-estimate"
-          : "/parse-blueprints";
+      const mode = document.querySelector("input[name='mode']:checked").value;
+      const endpoint =
+        mode === "json"
+          ? "https://rebar-ai-backend.onrender.com/api/parse-blueprints"
+          : "https://rebar-ai-backend.onrender.com/api/parse-blueprint-estimate";
 
-        const body = getSelectedMode() === "estimate"
-          ? { file_path: filePath }
-          : { file_paths: [filePath] };
+      try {
+        const uploadRes = await fetch("https://rebar-ai-backend.onrender.com/api/upload-blueprints", {
+          method: "POST",
+          body: formData,
+        });
 
-        const parseRes = await fetch(`${backendUrl}${endpoint}`, {
+        if (!uploadRes.ok) throw new Error("Upload failed");
+        const { filename, temp_path } = await uploadRes.json();
+        filenameEl.textContent = filename;
+
+        const parseRes = await fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body)
+          body: JSON.stringify({ file_path: temp_path }),
         });
-        const parsedData = await parseRes.json();
 
-        const block = document.createElement("div");
-        block.innerHTML = `
-          <h3>${filePath.split("/").pop()}</h3>
-          <pre>${JSON.stringify(parsedData.estimate || parsedData[0] || parsedData.error, null, 2)}</pre>
-        `;
-        resultsDiv.appendChild(block);
+        const data = await parseRes.json();
+        output.textContent = typeof data === "object"
+          ? JSON.stringify(data, null, 2)
+          : data;
+      } catch (err) {
+        console.error(err);
+        output.textContent = "❌ Error: " + err.message;
       }
     }
   </script>
