@@ -3,27 +3,37 @@
 <html>
 <head>
   <meta charset="UTF-8" />
-  <title>Rebar AI - Multi Blueprint Parser</title>
+  <title>Rebar AI - Blueprint Parser</title>
   <style>
     body { font-family: Arial; background: #f4f4f4; padding: 20px; }
-    input, button { margin-top: 10px; }
-    pre { background: #fff; padding: 10px; border: 1px solid #ccc; overflow: auto; max-height: 400px; margin-bottom: 20px; }
-    .file-result { margin-bottom: 30px; }
+    input, button, label { margin-top: 10px; display: block; }
+    pre { background: #fff; padding: 10px; border: 1px solid #ccc; overflow: auto; max-height: 400px; margin-top: 20px; }
+    .toggle { margin-top: 10px; }
   </style>
 </head>
 <body>
-  <h1>Upload Multiple Rebar Blueprints</h1>
+  <h1>Upload Rebar Blueprints</h1>
   <input type="file" id="fileInput" multiple />
-  <br />
-  <button onclick="uploadAndParse()">Upload + Parse All</button>
+
+  <div class="toggle">
+    <label><input type="radio" name="parseMode" value="table" checked /> Extract Bar Table (JSON)</label>
+    <label><input type="radio" name="parseMode" value="estimate" /> Generate Estimate Report (Text)</label>
+  </div>
+
+  <button onclick="uploadAndParse()">Upload + Parse</button>
   <div id="results"></div>
 
   <script>
     const backendUrl = "https://rebar-ai-backend.onrender.com/api";
 
+    function getSelectedMode() {
+      return document.querySelector('input[name="parseMode"]:checked').value;
+    }
+
     async function uploadAndParse() {
       const input = document.getElementById("fileInput");
       const files = input.files;
+      const resultsDiv = document.getElementById("results");
       if (!files.length) return alert("Please select at least one file.");
 
       const formData = new FormData();
@@ -37,24 +47,30 @@
       });
       const uploadData = await uploadRes.json();
 
-      const parseRes = await fetch(`${backendUrl}/parse-blueprints`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ file_paths: uploadData.files })
-      });
-      const parsedData = await parseRes.json();
-
-      const resultsDiv = document.getElementById("results");
       resultsDiv.innerHTML = "";
-      parsedData.forEach(fileResult => {
+      for (let filePath of uploadData.files) {
+        const endpoint = getSelectedMode() === "estimate"
+          ? "/parse-blueprint-estimate"
+          : "/parse-blueprints";
+
+        const body = getSelectedMode() === "estimate"
+          ? { file_path: filePath }
+          : { file_paths: [filePath] };
+
+        const parseRes = await fetch(`${backendUrl}${endpoint}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body)
+        });
+        const parsedData = await parseRes.json();
+
         const block = document.createElement("div");
-        block.className = "file-result";
         block.innerHTML = `
-          <h3>${fileResult.file}</h3>
-          <pre>${JSON.stringify(fileResult.bars || fileResult.error, null, 2)}</pre>
+          <h3>${filePath.split("/").pop()}</h3>
+          <pre>${JSON.stringify(parsedData.estimate || parsedData[0] || parsedData.error, null, 2)}</pre>
         `;
         resultsDiv.appendChild(block);
-      });
+      }
     }
   </script>
 </body>
