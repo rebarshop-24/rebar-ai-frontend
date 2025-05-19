@@ -1,0 +1,47 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8" />
+  <title>Rebar AI Phase 1 - Upload + Parse</title>
+  <style>
+    body { font-family: Arial; padding: 20px; background: #f6f6f6; }
+    input, button { margin-top: 10px; }
+    pre { background: #fff; padding: 10px; border: 1px solid #ccc; overflow: auto; max-height: 500px; }
+  </style>
+</head>
+<body>
+  <h1>Upload Rebar Blueprint</h1>
+  <input type="file" id="fileInput" />
+  <button onclick="upload()">Upload + Parse</button>
+  <pre id="responseBox">Awaiting upload...</pre>
+
+  <script>
+    const backendUrl = "https://rebar-ai-backend.onrender.com/api";
+
+    async function upload() {
+      const file = document.getElementById('fileInput').files[0];
+      if (!file) return alert("Select a file first.");
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const uploadRes = await fetch(`${backendUrl}/upload-blueprint`, {
+        method: "POST",
+        body: formData
+      });
+      const uploadData = await uploadRes.json();
+      const filePath = "/tmp/blueprints/" + uploadData.filename;
+
+      const parseRes = await fetch(`${backendUrl}/parse-blueprint`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ file_path: filePath })
+      });
+      const parseData = await parseRes.json();
+
+      document.getElementById("responseBox").innerText = JSON.stringify(parseData, null, 2);
+    }
+  </script>
+</body>
+</html>
