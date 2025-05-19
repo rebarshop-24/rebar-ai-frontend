@@ -3,44 +3,58 @@
 <html>
 <head>
   <meta charset="UTF-8" />
-  <title>Rebar AI Phase 1 - Upload + Parse</title>
+  <title>Rebar AI - Multi Blueprint Parser</title>
   <style>
-    body { font-family: Arial; padding: 20px; background: #f6f6f6; }
+    body { font-family: Arial; background: #f4f4f4; padding: 20px; }
     input, button { margin-top: 10px; }
-    pre { background: #fff; padding: 10px; border: 1px solid #ccc; overflow: auto; max-height: 500px; }
+    pre { background: #fff; padding: 10px; border: 1px solid #ccc; overflow: auto; max-height: 400px; margin-bottom: 20px; }
+    .file-result { margin-bottom: 30px; }
   </style>
 </head>
 <body>
-  <h1>Upload Rebar Blueprint</h1>
-  <input type="file" id="fileInput" />
-  <button onclick="upload()">Upload + Parse</button>
-  <pre id="responseBox">Awaiting upload...</pre>
+  <h1>Upload Multiple Rebar Blueprints</h1>
+  <input type="file" id="fileInput" multiple />
+  <br />
+  <button onclick="uploadAndParse()">Upload + Parse All</button>
+  <div id="results"></div>
 
   <script>
     const backendUrl = "https://rebar-ai-backend.onrender.com/api";
 
-    async function upload() {
-      const file = document.getElementById('fileInput').files[0];
-      if (!file) return alert("Select a file first.");
+    async function uploadAndParse() {
+      const input = document.getElementById("fileInput");
+      const files = input.files;
+      if (!files.length) return alert("Please select at least one file.");
 
       const formData = new FormData();
-      formData.append("file", file);
+      for (let file of files) {
+        formData.append("files", file);
+      }
 
-      const uploadRes = await fetch(`${backendUrl}/upload-blueprint`, {
+      const uploadRes = await fetch(`${backendUrl}/upload-blueprints`, {
         method: "POST",
         body: formData
       });
       const uploadData = await uploadRes.json();
-      const filePath = "/tmp/blueprints/" + uploadData.filename;
 
-      const parseRes = await fetch(`${backendUrl}/parse-blueprint`, {
+      const parseRes = await fetch(`${backendUrl}/parse-blueprints`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ file_path: filePath })
+        body: JSON.stringify({ file_paths: uploadData.files })
       });
-      const parseData = await parseRes.json();
+      const parsedData = await parseRes.json();
 
-      document.getElementById("responseBox").innerText = JSON.stringify(parseData, null, 2);
+      const resultsDiv = document.getElementById("results");
+      resultsDiv.innerHTML = "";
+      parsedData.forEach(fileResult => {
+        const block = document.createElement("div");
+        block.className = "file-result";
+        block.innerHTML = `
+          <h3>${fileResult.file}</h3>
+          <pre>${JSON.stringify(fileResult.bars || fileResult.error, null, 2)}</pre>
+        `;
+        resultsDiv.appendChild(block);
+      });
     }
   </script>
 </body>
