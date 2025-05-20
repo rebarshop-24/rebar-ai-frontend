@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,7 +7,7 @@
 <body>
   <h1>Upload Rebar Blueprints</h1>
 
-  <input type="file" multiple id="fileInput" />
+  <input type="file" multiple />
   <br />
   <label><input type="radio" name="mode" value="json" checked /> Extract Bar Table (JSON)</label><br />
   <label><input type="radio" name="mode" value="text" /> Generate Estimate Report (Text)</label><br />
@@ -19,22 +18,13 @@
 
   <script>
     async function uploadAndParse() {
-      const fileInput = document.getElementById("fileInput");
+      const fileInput = document.querySelector("input[type='file']");
       const files = fileInput.files;
-      const output = document.getElementById("output");
-      const filenameEl = document.getElementById("filename");
-
-      output.textContent = "...";
-      filenameEl.textContent = "";
-
-      if (!files || files.length === 0) {
-        alert("Please select a file.");
-        return;
-      }
+      if (!files.length) return alert("Please select a file.");
 
       const formData = new FormData();
-      for (let i = 0; i < files.length; i++) {
-        formData.append("files", files[i]);
+      for (let file of files) {
+        formData.append("files", file);
       }
 
       const mode = document.querySelector("input[name='mode']:checked").value;
@@ -49,23 +39,22 @@
           body: formData,
         });
 
-        if (!uploadRes.ok) throw new Error("Upload failed");
         const { filename, temp_path } = await uploadRes.json();
-        filenameEl.textContent = filename;
+        document.getElementById("filename").textContent = filename;
+
+        const parseForm = new FormData();
+        parseForm.append("file_path", temp_path);
 
         const parseRes = await fetch(endpoint, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ file_path: temp_path }),
+          body: parseForm,
         });
 
         const data = await parseRes.json();
-        output.textContent = typeof data === "object"
-          ? JSON.stringify(data, null, 2)
-          : data;
+        document.getElementById("output").textContent = JSON.stringify(data, null, 2);
       } catch (err) {
         console.error(err);
-        output.textContent = "❌ Error: " + err.message;
+        document.getElementById("output").textContent = "Error: " + err.message;
       }
     }
   </script>
