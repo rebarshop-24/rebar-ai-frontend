@@ -117,6 +117,10 @@ export default function DrawingTool() {
   </button>
 </form>
           </div>
+          <details className="mt-4">
+            <summary className="cursor-pointer text-blue-600">Show Gemini Raw Response</summary>
+            <pre className="text-xs bg-gray-100 p-2 mt-2 rounded">{JSON.stringify(jsonOutput, null, 2)}</pre>
+          </details>
         </div>
       )}
     </div>
