@@ -35,6 +35,7 @@ export default function DrawingTool() {
       } else if (mode === "drawing") {
         setDrawings(response.data);
       } else {
+        console.log("✅ Gemini Response:", response.data);
         setJsonOutput(response.data);
       }
     } catch {
