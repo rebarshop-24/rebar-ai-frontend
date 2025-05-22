@@ -106,37 +106,30 @@ export default function DrawingTool() {
       )}
       {error && <p className="text-red-500">{error}</p>}
 
-      {mode === "estimate" && jsonOutput && (
+      {(mode === "estimate" || mode === "barlist" || mode === "drawing") && jsonOutput && (
         <div className="mt-6">
-          <h2 className="text-xl font-semibold mb-2">Estimate Output</h2>
+          <h2 className="text-xl font-semibold mb-2 capitalize">{mode} Output</h2>
           <div ref={estimateTableRef} className="overflow-auto bg-white p-4 shadow rounded">
             <pre className="text-xs whitespace-pre-wrap break-words">{JSON.stringify(jsonOutput, null, 2)}</pre>
           </div>
-          <div className="mt-4 flex gap-3">
-            <button onClick={downloadJSON} className="bg-blue-600 text-white px-3 py-1 rounded">Download JSON</button>
-            <button onClick={downloadPDF} className="bg-green-600 text-white px-3 py-1 rounded">Download PDF</button>
-            <form onSubmit={(e) => { e.preventDefault(); alert('📩 Sent to customer. Waiting for clarification...'); }} className="flex gap-2">
-              <input type="text" placeholder="Add customer note..." className="border px-2 py-1 rounded w-64" />
-              <button type="submit" className="bg-orange-500 text-white px-3 py-1 rounded">
-                Send to Customer for Clarification
-              </button>
-            </form>
-          </div>
+
+          {mode === "estimate" && (
+            <div className="mt-4 flex gap-3">
+              <button onClick={downloadJSON} className="bg-blue-600 text-white px-3 py-1 rounded">Download JSON</button>
+              <button onClick={downloadPDF} className="bg-green-600 text-white px-3 py-1 rounded">Download PDF</button>
+              <form onSubmit={(e) => { e.preventDefault(); alert('📩 Sent to customer. Waiting for clarification...'); }} className="flex gap-2">
+                <input type="text" placeholder="Add customer note..." className="border px-2 py-1 rounded w-64" />
+                <button type="submit" className="bg-orange-500 text-white px-3 py-1 rounded">
+                  Send to Customer for Clarification
+                </button>
+              </form>
+            </div>
+          )}
+
           <details className="mt-4">
             <summary className="cursor-pointer text-blue-600">Show Gemini Raw Response</summary>
             <pre className="text-xs bg-gray-100 p-2 mt-2 rounded">{JSON.stringify(jsonOutput, null, 2)}</pre>
           </details>
-        </div>
-      )}
-
-      {(mode === "barlist" || mode === "drawing") && jsonOutput && (
-        <div className="mt-6">
-          <h2 className="text-xl font-semibold mb-2 capitalize">{mode} Output</h2>
-          <div className="overflow-auto bg-white p-4 shadow rounded">
-            <pre className="text-xs whitespace-pre-wrap break-words">
-              {JSON.stringify(jsonOutput, null, 2)}
-            </pre>
-          </div>
         </div>
       )}
     </div>
