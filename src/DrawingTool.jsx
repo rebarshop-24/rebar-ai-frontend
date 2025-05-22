@@ -38,8 +38,9 @@ export default function DrawingTool() {
         console.log("✅ Gemini Response:", response.data);
         setJsonOutput(response.data);
       }
-    } catch {
-      setError("Request failed.");
+    } catch (err) {
+      console.error("❌ Axios Error:", err);
+      setError(err?.response?.data?.error || "Request failed.");
     } finally {
       setLoading(false);
     }
