@@ -67,9 +67,53 @@ export default function DrawingTool() {
     } catch {
       alert("❌ Failed to send to Google Sheets.");
     }
-  };
-    </div>
-
+  };
+
+  return (
+    <div className="p-4 max-w-6xl mx-auto">
+      <h1 className="text-2xl font-bold mb-4">Rebar Drawing Generator</h1>
+      <form onSubmit={handleSubmit} className="space-y-4 mb-6">
+        <input type="file" onChange={handleFileChange} />
+        <select
+          value={mode}
+          onChange={(e) => setMode(e.target.value)}
+          className="border px-2 py-1"
+        >
+          <option value="drawing">Drawings</option>
+          <option value="barlist">Barlist</option>
+          <option value="estimate">Estimate</option>
+        </select>
+        <button type="submit" className="bg-black text-white px-4 py-2 rounded">
+          Submit
+        </button>
+      </form>
+
+      {loading && <p>Processing...</p>}
+      {error && <p className="text-red-500">{error}</p>}
+
+      {mode === "drawing" && drawings.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {drawings.map((item, idx) => (
+            <div key={idx} className="p-4 border rounded shadow bg-white">
+              <p className="font-semibold mb-2">MARK: {item.MARK}</p>
+              {item.file ? (
+                <>
+                  <img
+                    src={`${BACKEND_URL}/${item.file}`}
+                    alt={`Drawing ${item.MARK}`}
+                    className="w-full"
+                  />
+                  <a
+                    href={`${BACKEND_URL}/${item.file}`}
+                    download
+                    className="block mt-2 text-blue-600 underline"
+                  >
+                    Download Drawing
+                  </a>
+                </>
+              ) : (
+                <p className="text-red-500">{item.error}</p>
+              )}
             </div>
           ))}
         </div>
