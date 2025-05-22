@@ -88,7 +88,12 @@ export default function DrawingTool() {
         </button>
       </form>
 
-      {loading && <p>Processing...</p>}
+      {loading && (
+        <div className="flex items-center gap-2 text-blue-600">
+          <span className="loader border-2 border-blue-600 border-t-transparent rounded-full w-4 h-4 animate-spin"></span>
+          <span>Processing your files...</span>
+        </div>
+      )}
       {error && <p className="text-red-500">{error}</p>}
 
       {mode === "estimate" && jsonOutput && (
@@ -100,12 +105,12 @@ export default function DrawingTool() {
           <div className="mt-4 flex gap-3">
             <button onClick={downloadJSON} className="bg-blue-600 text-white px-3 py-1 rounded">Download JSON</button>
             <button onClick={downloadPDF} className="bg-green-600 text-white px-3 py-1 rounded">Download PDF</button>
-            <button
-              onClick={() => alert('📩 Sent to customer. Waiting for clarification...')}
-              className="bg-orange-500 text-white px-3 py-1 rounded"
-            >
-              Send to Customer for Clarification
-            </button>
+            <form onSubmit={(e) => { e.preventDefault(); alert('📩 Sent to customer. Waiting for clarification...'); }} className="flex gap-2">
+  <input type="text" placeholder="Add customer note..." className="border px-2 py-1 rounded w-64" />
+  <button type="submit" className="bg-orange-500 text-white px-3 py-1 rounded">
+    Send to Customer for Clarification
+  </button>
+</form>
           </div>
         </div>
       )}
