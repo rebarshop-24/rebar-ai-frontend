@@ -1,62 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Upload Rebar Blueprints</title>
-</head>
-<body>
-  <h1>Upload Rebar Blueprints</h1>
-
-  <input type="file" multiple />
-  <br />
-  <label><input type="radio" name="mode" value="json" checked /> Extract Bar Table (JSON)</label><br />
-  <label><input type="radio" name="mode" value="text" /> Generate Estimate Report (Text)</label><br />
-  <button onclick="uploadAndParse()">Upload + Parse</button>
-
-  <h3 id="filename"></h3>
-  <pre id="output">...</pre>
-
-  <script>
-    async function uploadAndParse() {
-      const fileInput = document.querySelector("input[type='file']");
-      const files = fileInput.files;
-      if (!files.length) return alert("Please select a file.");
-
-      const formData = new FormData();
-      for (let file of files) {
-        formData.append("files", file);
-      }
-
-      const mode = document.querySelector("input[name='mode']:checked").value;
-      const endpoint =
-        mode === "json"
-          ? "https://rebar-ai-backend.onrender.com/api/parse-blueprints"
-          : "https://rebar-ai-backend.onrender.com/api/parse-blueprint-estimate";
-
-      try {
-        const uploadRes = await fetch("https://rebar-ai-backend.onrender.com/api/upload-blueprints", {
-          method: "POST",
-          body: formData,
-        });
-
-        const { filename, temp_path } = await uploadRes.json();
-        document.getElementById("filename").textContent = filename;
-
-        const parseForm = new FormData();
-        parseForm.append("file_path", temp_path);
-
-        const parseRes = await fetch(endpoint, {
-          method: "POST",
-          body: parseForm,
-        });
-
-        const data = await parseRes.json();
-        document.getElementById("output").textContent = JSON.stringify(data, null, 2);
-      } catch (err) {
-        console.error(err);
-        document.getElementById("output").textContent = "Error: " + err.message;
-      }
-    }
-  </script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Rebar Drawing Generator</title>
+  </head>
+  <body class="bg-gray-100">
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
 </html>
