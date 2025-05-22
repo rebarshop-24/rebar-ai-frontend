@@ -1,8 +1,5 @@
-// src/DrawingTool.jsx
 import React, { useState, useRef } from 'react';
 import axios from 'axios';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
 
 export default function DrawingTool() {
   const [files, setFiles] = useState([]);
@@ -14,7 +11,6 @@ export default function DrawingTool() {
 
   const BACKEND_URL = "https://rebar-ai-backend.onrender.com";
   const SHEET_WEBHOOK = "https://script.google.com/macros/s/AKfycbzIqrzDQtPfxST7NzmeZdls88qYP0UgCCtAEd1dkIHo_aVaLkzvneKXYzPPZx6QdQ/exec";
-  const estimateTableRef = useRef(null);
 
   const handleFileChange = (e) => setFiles(Array.from(e.target.files));
 
@@ -61,18 +57,33 @@ export default function DrawingTool() {
   };
 
   const downloadPDF = async () => {
-    if (!estimateTableRef.current) return;
-    const canvas = await html2canvas(estimateTableRef.current);
-    const imgData = canvas.toDataURL('image/png');
-    const pdf = new jsPDF();
-    pdf.addImage(imgData, 'PNG', 10, 10, 190, 0);
-    pdf.save('estimate-output.pdf');
+    if (!jsonOutput?.asa_format) {
+      alert("⚠️ No ASA-format data available for PDF export.");
+      return;
+    }
+    try {
+      const response = await axios.post(
+        `${BACKEND_URL}/api/export-pdf`,
+        jsonOutput.asa_format,
+        { responseType: 'blob' }
+      );
+      const blob = new Blob([response.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'Rebar_Listing_Report.pdf');
+      document.body.appendChild(link);
+      link.click();
+    } catch (err) {
+      alert("❌ Failed to download formatted PDF.");
+      console.error("PDF Download Error:", err);
+    }
   };
 
   const sendToGoogleSheets = async () => {
-    if (!jsonOutput || !Array.isArray(jsonOutput)) return;
+    if (!jsonOutput?.asa_format) return;
     try {
-      await axios.post(SHEET_WEBHOOK, jsonOutput);
+      await axios.post(SHEET_WEBHOOK, jsonOutput.asa_format);
       alert("✅ Sent to Google Sheets successfully.");
     } catch {
       alert("❌ Failed to send to Google Sheets.");
@@ -109,17 +120,39 @@ export default function DrawingTool() {
       {(mode === "estimate" || mode === "barlist" || mode === "drawing") && jsonOutput && (
         <div className="mt-6">
           <h2 className="text-xl font-semibold mb-2 capitalize">{mode} Output</h2>
-          <div ref={estimateTableRef} className="overflow-auto bg-white p-4 shadow rounded">
-            <pre className="text-xs whitespace-pre-wrap break-words">{JSON.stringify(jsonOutput, null, 2)}</pre>
+          <div className="overflow-auto bg-white p-4 shadow rounded">
+            <pre className="text-xs whitespace-pre-wrap break-words">
+              {JSON.stringify(jsonOutput, null, 2)}
+            </pre>
           </div>
 
           {mode === "estimate" && (
-            <div className="mt-4 flex gap-3">
-              <button onClick={downloadJSON} className="bg-blue-600 text-white px-3 py-1 rounded">Download JSON</button>
-              <button onClick={downloadPDF} className="bg-green-600 text-white px-3 py-1 rounded">Download PDF</button>
-              <form onSubmit={(e) => { e.preventDefault(); alert('📩 Sent to customer. Waiting for clarification...'); }} className="flex gap-2">
-                <input type="text" placeholder="Add customer note..." className="border px-2 py-1 rounded w-64" />
-                <button type="submit" className="bg-orange-500 text-white px-3 py-1 rounded">
+            <div className="mt-4 flex gap-3 flex-wrap">
+              <button onClick={downloadJSON} className="bg-blue-600 text-white px-3 py-1 rounded">
+                Download JSON
+              </button>
+              <button onClick={downloadPDF} className="bg-green-600 text-white px-3 py-1 rounded">
+                Download PDF
+              </button>
+              <button onClick={sendToGoogleSheets} className="bg-yellow-500 text-white px-3 py-1 rounded">
+                Send to Google Sheets
+              </button>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  alert("📩 Sent to customer. Waiting for clarification...");
+                }}
+                className="flex gap-2"
+              >
+                <input
+                  type="text"
+                  placeholder="Add customer note..."
+                  className="border px-2 py-1 rounded w-64"
+                />
+                <button
+                  type="submit"
+                  className="bg-orange-500 text-white px-3 py-1 rounded"
+                >
                   Send to Customer for Clarification
                 </button>
               </form>
@@ -127,8 +160,12 @@ export default function DrawingTool() {
           )}
 
           <details className="mt-4">
-            <summary className="cursor-pointer text-blue-600">Show Gemini Raw Response</summary>
-            <pre className="text-xs bg-gray-100 p-2 mt-2 rounded">{JSON.stringify(jsonOutput, null, 2)}</pre>
+            <summary className="cursor-pointer text-blue-600">
+              Show Gemini Raw Response
+            </summary>
+            <pre className="text-xs bg-gray-100 p-2 mt-2 rounded">
+              {JSON.stringify(jsonOutput, null, 2)}
+            </pre>
           </details>
         </div>
       )}
