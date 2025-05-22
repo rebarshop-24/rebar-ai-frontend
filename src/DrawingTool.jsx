@@ -128,6 +128,17 @@ export default function DrawingTool() {
           </details>
         </div>
       )}
+
+      {(mode === "barlist" || mode === "drawing") && jsonOutput && (
+        <div className="mt-6">
+          <h2 className="text-xl font-semibold mb-2 capitalize">{mode} Output</h2>
+          <div className="overflow-auto bg-white p-4 shadow rounded">
+            <pre className="text-xs whitespace-pre-wrap break-words">
+              {JSON.stringify(jsonOutput, null, 2)}
+            </pre>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
