@@ -27,8 +27,13 @@ export default function DrawingTool() {
     files.forEach((file) => formData.append("files", file));
     formData.append("mode", mode);
 
+    const endpoint =
+      mode === "estimate"
+        ? `${BACKEND_URL}/api/parse-blueprint-estimate`
+        : `${BACKEND_URL}/api/parse-blueprints`;
+
     try {
-      const response = await axios.post(`${BACKEND_URL}/api/parse-blueprints`, formData);
+      const response = await axios.post(endpoint, formData);
       if (response.data?.error) {
         console.error("Gemini Error:", response.data);
         setError(response.data.error || "Something went wrong with Gemini output.");
@@ -111,11 +116,11 @@ export default function DrawingTool() {
             <button onClick={downloadJSON} className="bg-blue-600 text-white px-3 py-1 rounded">Download JSON</button>
             <button onClick={downloadPDF} className="bg-green-600 text-white px-3 py-1 rounded">Download PDF</button>
             <form onSubmit={(e) => { e.preventDefault(); alert('📩 Sent to customer. Waiting for clarification...'); }} className="flex gap-2">
-  <input type="text" placeholder="Add customer note..." className="border px-2 py-1 rounded w-64" />
-  <button type="submit" className="bg-orange-500 text-white px-3 py-1 rounded">
-    Send to Customer for Clarification
-  </button>
-</form>
+              <input type="text" placeholder="Add customer note..." className="border px-2 py-1 rounded w-64" />
+              <button type="submit" className="bg-orange-500 text-white px-3 py-1 rounded">
+                Send to Customer for Clarification
+              </button>
+            </form>
           </div>
           <details className="mt-4">
             <summary className="cursor-pointer text-blue-600">Show Gemini Raw Response</summary>
