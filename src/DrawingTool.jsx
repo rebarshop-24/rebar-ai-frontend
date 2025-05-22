@@ -1,5 +1,4 @@
 import React, { useState } from 'react';
-import axios from 'axios';
 
 export default function DrawingTool() {
   const [file, setFile] = useState(null);
@@ -14,31 +13,27 @@ export default function DrawingTool() {
     if (!file) return;
     setLoading(true); setError(null);
 
-    const formData = new FormData();
-    formData.append("file_path", file);
-    formData.append("mode", "drawing");
-
-    try {
-      const response = await axios.post("/api/parse-blueprints", formData);
-      setDrawings(response.data);
-    } catch {
-      setError("Failed to generate drawings.");
-    } finally {
+    setTimeout(() => {
+      setDrawings([
+        { MARK: 'A1', file: 'https://via.placeholder.com/400x300?text=MARK+A1' },
+        { MARK: 'B2', file: 'https://via.placeholder.com/400x300?text=MARK+B2' },
+        { MARK: 'C3', file: 'https://via.placeholder.com/400x300?text=MARK+C3' }
+      ]);
       setLoading(false);
-    }
+    }, 1000);
   };
 
   return (
     <div className="p-4 max-w-3xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">Rebar Drawing Generator</h1>
+      <h1 className="text-2xl font-bold mb-4">Rebar Drawing Generator (Mock Mode)</h1>
       <form onSubmit={handleSubmit} className="space-y-4 mb-6">
         <input type="file" onChange={handleFileChange} />
         <button type="submit" className="bg-black text-white px-4 py-2 rounded">
-          Generate Drawings
+          Mock Drawings
         </button>
       </form>
 
-      {loading && <p>Generating drawings...</p>}
+      {loading && <p>Generating mock drawings...</p>}
       {error && <p className="text-red-500">{error}</p>}
 
       {drawings.length > 0 && (
@@ -46,11 +41,7 @@ export default function DrawingTool() {
           {drawings.map((item, idx) => (
             <div key={idx} className="p-4 border rounded shadow bg-white">
               <p className="font-semibold mb-2">MARK: {item.MARK}</p>
-              {item.file ? (
-                <img src={`/${item.file}`} alt={`Drawing ${item.MARK}`} className="w-full" />
-              ) : (
-                <p className="text-red-500">{item.error}</p>
-              )}
+              <img src={item.file} alt={`Drawing ${item.MARK}`} className="w-full" />
             </div>
           ))}
         </div>
