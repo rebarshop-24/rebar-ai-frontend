@@ -29,7 +29,10 @@ export default function DrawingTool() {
 
     try {
       const response = await axios.post(`${BACKEND_URL}/api/parse-blueprints`, formData);
-      if (mode === "drawing") {
+      if (response.data?.error) {
+        console.error("Gemini Error:", response.data);
+        setError(response.data.error || "Something went wrong with Gemini output.");
+      } else if (mode === "drawing") {
         setDrawings(response.data);
       } else {
         setJsonOutput(response.data);
