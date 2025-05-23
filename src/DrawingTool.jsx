@@ -36,6 +36,9 @@ export default function DrawingTool() {
       }
     } catch (err) {
     console.error(err);
+  } finally {
+    setLoading(false);
+  }
       console.error(err);
     }
   };
