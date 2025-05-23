@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from 'react'; 
 import axios from 'axios';
 
 export default function DrawingTool() {
@@ -6,6 +6,8 @@ export default function DrawingTool() {
   const [jsonOutput, setJsonOutput] = useState(null);
   const [pdfPath, setPdfPath] = useState("");
   const [email, setEmail] = useState("");
+  const [projectName, setProjectName] = useState("");
+  const [notes, setNotes] = useState("");
   const [folderId, setFolderId] = useState("");
   const [mode, setMode] = useState("estimate");
   const [loading, setLoading] = useState(false);
@@ -36,10 +38,12 @@ export default function DrawingTool() {
 
   const handleSendEmail = async () => {
     try {
-      await axios.post(`${BACKEND_URL}/api/send-estimate-email`, new URLSearchParams({
-        recipient: email,
-        file_path: "/tmp/Estimate_Report_Export.pdf"
-      }));
+      await axios.post(`${BACKEND_URL}/api/send-estimate-email`, {
+        to_email: email,
+        project_name: projectName,
+        ai_message: notes,
+        pdf_path: "/mnt/data/Rebar_Listing_Report.pdf"
+      });
       alert("✅ Email sent.");
     } catch {
       alert("❌ Email failed.");
@@ -73,6 +77,26 @@ export default function DrawingTool() {
         <option value="barlist">Barlist</option>
         <option value="drawing">Drawings</option>
       </select>
+      <input
+        type="text"
+        placeholder="Customer Email"
+        value={email}
+        onChange={e => setEmail(e.target.value)}
+        className="border px-2 py-1 rounded w-full mb-2"
+      />
+      <input
+        type="text"
+        placeholder="Project Name"
+        value={projectName}
+        onChange={e => setProjectName(e.target.value)}
+        className="border px-2 py-1 rounded w-full mb-2"
+      />
+      <textarea
+        placeholder="AI Notes or Clarifications"
+        value={notes}
+        onChange={e => setNotes(e.target.value)}
+        className="border px-2 py-1 rounded w-full mb-4"
+      />
       <button onClick={handleSubmit} className="bg-blue-600 text-white px-4 py-2 rounded ml-2">Submit</button>
 
       {jsonOutput && (
@@ -88,8 +112,7 @@ export default function DrawingTool() {
                 <a href={pdfPath} download className="bg-gray-200 inline-block text-blue-700 px-3 py-1 rounded">📄 Download PDF</a>
               )}
               <div className="space-y-1">
-                <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Customer email" className="border px-2 py-1" />
-                <button onClick={handleSendEmail} className="bg-green-600 text-white px-3 py-1 rounded ml-2">Send PDF via Email</button>
+                <button onClick={handleSendEmail} className="bg-green-600 text-white px-3 py-1 rounded ml-2">Send PDF via Gmail</button>
               </div>
               <div className="space-y-1">
                 <input type="text" value={folderId} onChange={e => setFolderId(e.target.value)} placeholder="Google Drive Folder ID" className="border px-2 py-1" />
