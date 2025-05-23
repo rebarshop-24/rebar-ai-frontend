@@ -1,10 +1,10 @@
-import React, { useState } from 'react'; 
+import React, { useState } from 'react';
 import axios from 'axios';
 
 export default function DrawingTool() {
   const [files, setFiles] = useState([]);
   const [jsonOutput, setJsonOutput] = useState(null);
-  const [pdfPath, setPdfPath] = useState("");
+  const [pdfBlob, setPdfBlob] = useState(null);
   const [email, setEmail] = useState("");
   const [projectName, setProjectName] = useState("");
   const [notes, setNotes] = useState("");
@@ -24,40 +24,57 @@ export default function DrawingTool() {
       formData.append("mode", mode);
       const res = await axios.post(`${BACKEND_URL}/api/parse-blueprint-estimate`, formData);
       setJsonOutput(res.data);
+
       if (mode === "estimate") {
-        const exportRes = await axios.post(`${BACKEND_URL}/api/export-pdf`, res.data, { responseType: "blob" });
-        const url = window.URL.createObjectURL(new Blob([exportRes.data]));
-        setPdfPath(url);
+        const exportRes = await axios.post(`${BACKEND_URL}/api/export-pdf`, res.data, {
+          responseType: "blob"
+        });
+        setPdfBlob(exportRes.data);
       }
     } catch (err) {
       console.error(err);
+      alert("❌ Submission failed.");
     } finally {
       setLoading(false);
     }
   };
 
   const handleSendEmail = async () => {
+    if (!email || !projectName || !pdfBlob) {
+      return alert("Missing email, project name, or PDF file.");
+    }
+
     try {
-      await axios.post(`${BACKEND_URL}/api/send-estimate-email`, {
-        to_email: email,
-        project_name: projectName,
-        ai_message: notes,
-        pdf_path: "/mnt/data/Rebar_Listing_Report.pdf"
-      });
-      alert("✅ Email sent.");
-    } catch {
+      const formData = new FormData();
+      const file = new File([pdfBlob], "Estimate_Report_Export.pdf", { type: "application/pdf" });
+
+      formData.append("to_email", email);
+      formData.append("project_name", projectName);
+      formData.append("ai_message", notes);
+      formData.append("file", file);
+
+      await axios.post(`${BACKEND_URL}/api/send-estimate-email`, formData);
+      alert("✅ Email sent successfully.");
+    } catch (err) {
+      console.error(err);
       alert("❌ Email failed.");
     }
   };
 
   const handleUploadDrive = async () => {
+    if (!folderId || !pdfBlob) return alert("Missing folder ID or PDF file.");
+
     try {
-      const formData = new URLSearchParams();
-      formData.append("file_path", "/tmp/Estimate_Report_Export.pdf");
+      const formData = new FormData();
+      const file = new File([pdfBlob], "Estimate_Report_Export.pdf", { type: "application/pdf" });
+
       formData.append("folder_id", folderId);
+      formData.append("file", file);
+
       const res = await axios.post(`${BACKEND_URL}/api/upload-estimate-drive`, formData);
       alert("✅ Uploaded to Drive: " + res.data.file_id);
-    } catch {
+    } catch (err) {
+      console.error(err);
       alert("❌ Drive upload failed.");
     }
   };
@@ -66,17 +83,19 @@ export default function DrawingTool() {
     <div className="p-4 max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold mb-4">Rebar Estimate Tools</h1>
       {loading && (
-        <div className="flex items-center gap-2 text-blue-600">
-          <span className="loader border-2 border-blue-600 border-t-transparent rounded-full w-4 h-4 animate-spin"></span>
+        <div className="text-blue-600 flex gap-2 items-center">
+          <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-blue-600 border-solid border-r-transparent"></div>
           <span>Processing your files...</span>
         </div>
       )}
+
       <input type="file" multiple onChange={handleFileChange} className="mb-2" />
       <select value={mode} onChange={e => setMode(e.target.value)} className="border px-2 py-1 mb-4 ml-2">
         <option value="estimate">Estimate</option>
         <option value="barlist">Barlist</option>
         <option value="drawing">Drawings</option>
       </select>
+
       <input
         type="text"
         placeholder="Customer Email"
@@ -97,6 +116,7 @@ export default function DrawingTool() {
         onChange={e => setNotes(e.target.value)}
         className="border px-2 py-1 rounded w-full mb-4"
       />
+
       <button onClick={handleSubmit} className="bg-blue-600 text-white px-4 py-2 rounded ml-2">Submit</button>
 
       {jsonOutput && (
@@ -108,8 +128,14 @@ export default function DrawingTool() {
 
           {mode === "estimate" && (
             <div className="mt-4 space-y-3">
-              {pdfPath && (
-                <a href={pdfPath} download className="bg-gray-200 inline-block text-blue-700 px-3 py-1 rounded">📄 Download PDF</a>
+              {pdfBlob && (
+                <a
+                  href={URL.createObjectURL(pdfBlob)}
+                  download="Estimate_Report_Export.pdf"
+                  className="bg-gray-200 inline-block text-blue-700 px-3 py-1 rounded"
+                >
+                  📄 Download PDF
+                </a>
               )}
               <div className="space-y-1">
                 <button onClick={handleSendEmail} className="bg-green-600 text-white px-3 py-1 rounded ml-2">Send PDF via Gmail</button>
