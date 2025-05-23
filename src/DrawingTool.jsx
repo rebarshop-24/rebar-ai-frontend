@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
 
 export default function DrawingTool() {
@@ -7,24 +7,33 @@ export default function DrawingTool() {
   const [pdfPath, setPdfPath] = useState("");
   const [email, setEmail] = useState("");
   const [folderId, setFolderId] = useState("");
+  const [mode, setMode] = useState("estimate");
 
   const BACKEND_URL = "https://rebar-ai-backend.onrender.com";
 
   const handleFileChange = (e) => setFiles(Array.from(e.target.files));
 
-  const handleExportPDF = async () => {
+  const handleSubmit = async () => {
     const formData = new FormData();
     files.forEach(file => formData.append("files", file));
-    formData.append("mode", "estimate");
+    formData.append("mode", mode);
     try {
-      const response = await axios.post(`${BACKEND_URL}/api/parse-blueprint-estimate`, formData);
-      const raw = response.data;
-      setJsonOutput(raw);
-      const exportRes = await axios.post(`${BACKEND_URL}/api/export-pdf`, raw, { responseType: "blob" });
-      const url = window.URL.createObjectURL(new Blob([exportRes.data]));
-      setPdfPath(url);
+      const res = await axios.post(
+        `${BACKEND_URL}/api/parse-blueprint-estimate`,
+        formData
+      );
+      setJsonOutput(res.data);
+      if (mode === "estimate") {
+        const exportRes = await axios.post(
+          `${BACKEND_URL}/api/export-pdf`,
+          res.data,
+          { responseType: "blob" }
+        );
+        const url = window.URL.createObjectURL(new Blob([exportRes.data]));
+        setPdfPath(url);
+      }
     } catch (err) {
-      console.error("Export error:", err);
+      console.error(err);
     }
   };
 
@@ -56,19 +65,35 @@ export default function DrawingTool() {
     <div className="p-4 max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold mb-4">Rebar Estimate Tools</h1>
       <input type="file" multiple onChange={handleFileChange} className="mb-2" />
-      <button onClick={handleExportPDF} className="bg-blue-600 text-white px-4 py-2 rounded">Export Estimate PDF</button>
+      <select value={mode} onChange={e => setMode(e.target.value)} className="border px-2 py-1 mb-4 ml-2">
+        <option value="estimate">Estimate</option>
+        <option value="barlist">Barlist</option>
+        <option value="drawing">Drawings</option>
+      </select>
+      <button onClick={handleSubmit} className="bg-blue-600 text-white px-4 py-2 rounded ml-2">Submit</button>
 
-      {pdfPath && (
-        <div className="mt-4 space-y-2">
-          <a href={pdfPath} download className="text-blue-700 underline">📄 Download PDF</a>
-          <div className="space-y-2">
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Customer email" className="border px-2 py-1" />
-            <button onClick={handleSendEmail} className="bg-green-600 text-white px-3 py-1 rounded">Send PDF via Email</button>
+      {jsonOutput && (
+        <div className="mt-6">
+          <h2 className="text-xl font-semibold mb-2 capitalize">{mode} Output</h2>
+          <div className="overflow-auto bg-white p-4 shadow rounded">
+            <pre className="text-xs whitespace-pre-wrap break-words">{JSON.stringify(jsonOutput, null, 2)}</pre>
           </div>
-          <div className="space-y-2">
-            <input type="text" value={folderId} onChange={e => setFolderId(e.target.value)} placeholder="Google Drive Folder ID" className="border px-2 py-1" />
-            <button onClick={handleUploadDrive} className="bg-gray-700 text-white px-3 py-1 rounded">Upload to Google Drive</button>
-          </div>
+
+          {mode === "estimate" && (
+            <div className="mt-4 space-y-3">
+              {pdfPath && (
+                <a href={pdfPath} download className="bg-gray-200 inline-block text-blue-700 px-3 py-1 rounded">📄 Download PDF</a>
+              )}
+              <div className="space-y-1">
+                <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Customer email" className="border px-2 py-1" />
+                <button onClick={handleSendEmail} className="bg-green-600 text-white px-3 py-1 rounded ml-2">Send PDF via Email</button>
+              </div>
+              <div className="space-y-1">
+                <input type="text" value={folderId} onChange={e => setFolderId(e.target.value)} placeholder="Google Drive Folder ID" className="border px-2 py-1" />
+                <button onClick={handleUploadDrive} className="bg-gray-700 text-white px-3 py-1 rounded ml-2">Upload to Google Drive</button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
