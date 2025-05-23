@@ -3,170 +3,72 @@ import axios from 'axios';
 
 export default function DrawingTool() {
   const [files, setFiles] = useState([]);
-  const [drawings, setDrawings] = useState([]);
   const [jsonOutput, setJsonOutput] = useState(null);
-  const [mode, setMode] = useState("drawing");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [pdfPath, setPdfPath] = useState("");
+  const [email, setEmail] = useState("");
+  const [folderId, setFolderId] = useState("");
 
   const BACKEND_URL = "https://rebar-ai-backend.onrender.com";
-  const SHEET_WEBHOOK = "https://script.google.com/macros/s/AKfycbzIqrzDQtPfxST7NzmeZdls88qYP0UgCCtAEd1dkIHo_aVaLkzvneKXYzPPZx6QdQ/exec";
 
   const handleFileChange = (e) => setFiles(Array.from(e.target.files));
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!files.length) return;
-    setLoading(true); setError(null);
-
+  const handleExportPDF = async () => {
     const formData = new FormData();
-    files.forEach((file) => formData.append("files", file));
-    formData.append("mode", mode);
-
-    const endpoint =
-      mode === "estimate"
-        ? `${BACKEND_URL}/api/parse-blueprint-estimate`
-        : `${BACKEND_URL}/api/parse-blueprints`;
-
+    files.forEach(file => formData.append("files", file));
+    formData.append("mode", "estimate");
     try {
-      const response = await axios.post(endpoint, formData);
-      if (response.data?.error) {
-        console.error("Gemini Error:", response.data);
-        setError(response.data.error || "Something went wrong with Gemini output.");
-      } else if (mode === "drawing") {
-        setDrawings(response.data);
-      } else {
-        console.log("✅ Gemini Response:", response.data);
-        setJsonOutput(response.data);
-      }
+      const response = await axios.post(`${BACKEND_URL}/api/parse-blueprint-estimate`, formData);
+      const raw = response.data;
+      setJsonOutput(raw);
+      const exportRes = await axios.post(`${BACKEND_URL}/api/export-pdf`, raw, { responseType: "blob" });
+      const url = window.URL.createObjectURL(new Blob([exportRes.data]));
+      setPdfPath(url);
     } catch (err) {
-      console.error("❌ Axios Error:", err);
-      setError(err?.response?.data?.error || "Request failed.");
-    } finally {
-      setLoading(false);
+      console.error("Export error:", err);
     }
   };
 
-  const downloadJSON = () => {
-    const blob = new Blob([JSON.stringify(jsonOutput, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${mode}-output.json`;
-    link.click();
-  };
-
-  const downloadPDF = async () => {
-    if (!jsonOutput?.asa_format) {
-      alert("⚠️ No ASA-format data available for PDF export.");
-      return;
-    }
+  const handleSendEmail = async () => {
     try {
-      const response = await axios.post(
-        `${BACKEND_URL}/api/export-pdf`,
-        jsonOutput.asa_format,
-        { responseType: 'blob' }
-      );
-      const blob = new Blob([response.data], { type: 'application/pdf' });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.setAttribute('download', 'Rebar_Listing_Report.pdf');
-      document.body.appendChild(link);
-      link.click();
-    } catch (err) {
-      alert("❌ Failed to download formatted PDF.");
-      console.error("PDF Download Error:", err);
-    }
-  };
-
-  const sendToGoogleSheets = async () => {
-    if (!jsonOutput?.asa_format) return;
-    try {
-      await axios.post(SHEET_WEBHOOK, jsonOutput.asa_format);
-      alert("✅ Sent to Google Sheets successfully.");
+      await axios.post(`${BACKEND_URL}/api/send-estimate-email`, new URLSearchParams({
+        recipient: email,
+        file_path: "/tmp/Estimate_Report_Export.pdf"
+      }));
+      alert("✅ Email sent.");
     } catch {
-      alert("❌ Failed to send to Google Sheets.");
+      alert("❌ Email failed.");
+    }
+  };
+
+  const handleUploadDrive = async () => {
+    try {
+      const formData = new URLSearchParams();
+      formData.append("file_path", "/tmp/Estimate_Report_Export.pdf");
+      formData.append("folder_id", folderId);
+      const res = await axios.post(`${BACKEND_URL}/api/upload-estimate-drive`, formData);
+      alert("✅ Uploaded to Drive: " + res.data.file_id);
+    } catch {
+      alert("❌ Drive upload failed.");
     }
   };
 
   return (
-    <div className="p-4 max-w-6xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">Rebar Drawing Generator</h1>
-      <form onSubmit={handleSubmit} className="space-y-4 mb-6">
-        <input type="file" multiple onChange={handleFileChange} />
-        <select
-          value={mode}
-          onChange={(e) => setMode(e.target.value)}
-          className="border px-2 py-1"
-        >
-          <option value="drawing">Drawings</option>
-          <option value="barlist">Barlist</option>
-          <option value="estimate">Estimate</option>
-        </select>
-        <button type="submit" className="bg-black text-white px-4 py-2 rounded">
-          Submit
-        </button>
-      </form>
+    <div className="p-4 max-w-4xl mx-auto">
+      <h1 className="text-2xl font-bold mb-4">Rebar Estimate Tools</h1>
+      <input type="file" multiple onChange={handleFileChange} className="mb-2" />
+      <button onClick={handleExportPDF} className="bg-blue-600 text-white px-4 py-2 rounded">Export Estimate PDF</button>
 
-      {loading && (
-        <div className="flex items-center gap-2 text-blue-600">
-          <span className="loader border-2 border-blue-600 border-t-transparent rounded-full w-4 h-4 animate-spin"></span>
-          <span>Processing your files...</span>
-        </div>
-      )}
-      {error && <p className="text-red-500">{error}</p>}
-
-      {(mode === "estimate" || mode === "barlist" || mode === "drawing") && jsonOutput && (
-        <div className="mt-6">
-          <h2 className="text-xl font-semibold mb-2 capitalize">{mode} Output</h2>
-          <div className="overflow-auto bg-white p-4 shadow rounded">
-            <pre className="text-xs whitespace-pre-wrap break-words">
-              {JSON.stringify(jsonOutput, null, 2)}
-            </pre>
+      {pdfPath && (
+        <div className="mt-4 space-y-2">
+          <a href={pdfPath} download className="text-blue-700 underline">📄 Download PDF</a>
+          <div className="space-y-2">
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Customer email" className="border px-2 py-1" />
+            <button onClick={handleSendEmail} className="bg-green-600 text-white px-3 py-1 rounded">Send PDF via Email</button>
           </div>
-
-          {mode === "estimate" && (
-            <div className="mt-4 flex gap-3 flex-wrap">
-              <button onClick={downloadJSON} className="bg-blue-600 text-white px-3 py-1 rounded">
-                Download JSON
-              </button>
-              <button onClick={downloadPDF} className="bg-green-600 text-white px-3 py-1 rounded">
-                Download PDF
-              </button>
-              <button onClick={sendToGoogleSheets} className="bg-yellow-500 text-white px-3 py-1 rounded">
-                Send to Google Sheets
-              </button>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  alert("📩 Sent to customer. Waiting for clarification...");
-                }}
-                className="flex gap-2"
-              >
-                <input
-                  type="text"
-                  placeholder="Add customer note..."
-                  className="border px-2 py-1 rounded w-64"
-                />
-                <button
-                  type="submit"
-                  className="bg-orange-500 text-white px-3 py-1 rounded"
-                >
-                  Send to Customer for Clarification
-                </button>
-              </form>
-            </div>
-          )}
-
-          <details className="mt-4">
-            <summary className="cursor-pointer text-blue-600">
-              Show Gemini Raw Response
-            </summary>
-            <pre className="text-xs bg-gray-100 p-2 mt-2 rounded">
-              {JSON.stringify(jsonOutput, null, 2)}
-            </pre>
-          </details>
+          <div className="space-y-2">
+            <input type="text" value={folderId} onChange={e => setFolderId(e.target.value)} placeholder="Google Drive Folder ID" className="border px-2 py-1" />
+            <button onClick={handleUploadDrive} className="bg-gray-700 text-white px-3 py-1 rounded">Upload to Google Drive</button>
+          </div>
         </div>
       )}
     </div>
