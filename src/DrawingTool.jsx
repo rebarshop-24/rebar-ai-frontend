@@ -22,6 +22,7 @@ export default function DrawingTool() {
       const formData = new FormData();
       files.forEach(file => formData.append("files", file));
       formData.append("mode", mode);
+
       const res = await axios.post(`${BACKEND_URL}/api/parse-blueprint-estimate`, formData);
       setJsonOutput(res.data);
 
