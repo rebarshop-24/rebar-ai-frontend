@@ -70,7 +70,6 @@ export default function DrawingTool() {
   return (
     <div className="p-4 max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold mb-4">Rebar Estimate Tools</h1>
-      {loading && (<div className="flex items-center gap-2 text-blue-600"><span className="loader border-2 border-blue-600 border-t-transparent rounded-full w-4 h-4 animate-spin"></span><span>Processing your files...</span></div>)}
       <input type="file" multiple onChange={handleFileChange} className="mb-2" />
       <select value={mode} onChange={e => setMode(e.target.value)} className="border px-2 py-1 mb-4 ml-2">
         <option value="estimate">Estimate</option>
