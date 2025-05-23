@@ -22,7 +22,6 @@ export default function DrawingTool() {
       const formData = new FormData();
       files.forEach(file => formData.append("files", file));
       formData.append("mode", mode);
-
       const res = await axios.post(`${BACKEND_URL}/api/parse-blueprint-estimate`, formData);
       setJsonOutput(res.data);
 
@@ -42,20 +41,23 @@ export default function DrawingTool() {
 
   const handleSendEmail = async () => {
     if (!email || !projectName || !pdfBlob) {
-      return alert("Missing email, project name, or PDF file.");
+      return alert("Missing email, project name, or PDF.");
     }
 
     try {
       const formData = new FormData();
       const file = new File([pdfBlob], "Estimate_Report_Export.pdf", { type: "application/pdf" });
 
-      formData.append("to_email", email);
+      formData.append("recipient", email);
       formData.append("project_name", projectName);
       formData.append("ai_message", notes);
       formData.append("file", file);
 
-      await axios.post(`${BACKEND_URL}/api/send-estimate-email`, formData);
-      alert("✅ Email sent successfully.");
+      await axios.post(`${BACKEND_URL}/api/send-estimate-email`, formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+
+      alert("✅ Email sent.");
     } catch (err) {
       console.error(err);
       alert("❌ Email failed.");
@@ -97,28 +99,11 @@ export default function DrawingTool() {
         <option value="drawing">Drawings</option>
       </select>
 
-      <input
-        type="text"
-        placeholder="Customer Email"
-        value={email}
-        onChange={e => setEmail(e.target.value)}
-        className="border px-2 py-1 rounded w-full mb-2"
-      />
-      <input
-        type="text"
-        placeholder="Project Name"
-        value={projectName}
-        onChange={e => setProjectName(e.target.value)}
-        className="border px-2 py-1 rounded w-full mb-2"
-      />
-      <textarea
-        placeholder="AI Notes or Clarifications"
-        value={notes}
-        onChange={e => setNotes(e.target.value)}
-        className="border px-2 py-1 rounded w-full mb-4"
-      />
+      <input type="email" placeholder="Customer Email" value={email} onChange={e => setEmail(e.target.value)} className="border px-2 py-1 rounded w-full mb-2" />
+      <input type="text" placeholder="Project Name" value={projectName} onChange={e => setProjectName(e.target.value)} className="border px-2 py-1 rounded w-full mb-2" />
+      <textarea placeholder="AI Notes" value={notes} onChange={e => setNotes(e.target.value)} className="border px-2 py-1 rounded w-full mb-4" />
 
-      <button onClick={handleSubmit} className="bg-blue-600 text-white px-4 py-2 rounded ml-2">Submit</button>
+      <button onClick={handleSubmit} className="bg-blue-600 text-white px-4 py-2 rounded">Submit</button>
 
       {jsonOutput && (
         <div className="mt-6">
@@ -138,10 +123,8 @@ export default function DrawingTool() {
                   📄 Download PDF
                 </a>
               )}
-              <div className="space-y-1">
-                <button onClick={handleSendEmail} className="bg-green-600 text-white px-3 py-1 rounded ml-2">Send PDF via Gmail</button>
-              </div>
-              <div className="space-y-1">
+              <button onClick={handleSendEmail} className="bg-green-600 text-white px-3 py-1 rounded ml-2">Send PDF via Gmail</button>
+              <div>
                 <input type="text" value={folderId} onChange={e => setFolderId(e.target.value)} placeholder="Google Drive Folder ID" className="border px-2 py-1" />
                 <button onClick={handleUploadDrive} className="bg-gray-700 text-white px-3 py-1 rounded ml-2">Upload to Google Drive</button>
               </div>
