@@ -22,12 +22,6 @@ export default function DrawingTool() {
       const formData = new FormData();
       files.forEach(file => formData.append("files", file));
       formData.append("mode", mode);
-
-      // 🧪 DEBUG: Show FormData contents
-      for (let [key, val] of formData.entries()) {
-        console.log(`${key}:`, val);
-      }
-
       const res = await axios.post(`${BACKEND_URL}/api/parse-blueprint-estimate`, formData);
       setJsonOutput(res.data);
 
@@ -37,9 +31,10 @@ export default function DrawingTool() {
         });
         setPdfBlob(exportRes.data);
       }
-    } catch (err) {
-      console.error("❌ Submission failed:", err.response?.data || err.message);
-      alert("❌ Submission failed.");
+    } catch (x) {
+      const errorMessage = x.response?.data ? JSON.stringify(x.response.data) : x.message;
+      console.error("❌ Submission failed:", errorMessage);
+      alert(`❌ Submission failed: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -59,11 +54,15 @@ export default function DrawingTool() {
       formData.append("ai_message", notes);
       formData.append("file", file);
 
-      await axios.post(`${BACKEND_URL}/api/send-estimate-email`, formData);
+      await axios.post(`${BACKEND_URL}/api/send-estimate-email`, formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+
       alert("✅ Email sent.");
-    } catch (err) {
-      console.error("❌ Email failed:", err.response?.data || err.message);
-      alert("❌ Email failed.");
+    } catch (x) {
+      const errorMessage = x.response?.data ? JSON.stringify(x.response.data) : x.message;
+      console.error("❌ Email failed:", errorMessage);
+      alert(`❌ Email failed: ${errorMessage}`);
     }
   };
 
@@ -79,9 +78,10 @@ export default function DrawingTool() {
 
       const res = await axios.post(`${BACKEND_URL}/api/upload-estimate-drive`, formData);
       alert("✅ Uploaded to Drive: " + res.data.file_id);
-    } catch (err) {
-      console.error("❌ Drive upload failed:", err.response?.data || err.message);
-      alert("❌ Drive upload failed.");
+    } catch (x) {
+      const errorMessage = x.response?.data ? JSON.stringify(x.response.data) : x.message;
+      console.error("❌ Drive upload failed:", errorMessage);
+      alert(`❌ Drive upload failed: ${errorMessage}`);
     }
   };
 
