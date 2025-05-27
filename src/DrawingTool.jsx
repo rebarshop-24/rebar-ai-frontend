@@ -18,6 +18,9 @@ export default function DrawingTool() {
 
   const handleSubmit = async () => {
     setLoading(true);
+    setJsonOutput(null);
+    setPdfBlob(null);
+
     try {
       const formData = new FormData();
       files.forEach(file => formData.append("files", file));
@@ -36,9 +39,9 @@ export default function DrawingTool() {
         setPdfBlob(exportRes.data);
       }
     } catch (x) {
-      const errorMessage = x.response?.data ? JSON.stringify(x.response.data) : x.message;
-      console.error("❌ Submission failed:", errorMessage);
-      alert(`❌ Submission failed: ${errorMessage}`);
+      const detail = x.response?.data?.detail || x.response?.data?.error || x.message;
+      console.error("❌ Submission failed:", detail);
+      alert(`❌ Submission failed: ${detail}`);
     } finally {
       setLoading(false);
     }
@@ -46,7 +49,7 @@ export default function DrawingTool() {
 
   const handleSendEmail = async () => {
     if (!email || !projectName || !pdfBlob) {
-      return alert("Missing email, project name, or PDF.");
+      return alert("❌ Missing email, project name, or PDF.");
     }
 
     try {
@@ -62,83 +65,5 @@ export default function DrawingTool() {
         headers: { "Content-Type": "multipart/form-data" }
       });
 
-      alert("✅ Email sent.");
-    } catch (x) {
-      const errorMessage = x.response?.data ? JSON.stringify(x.response.data) : x.message;
-      console.error("❌ Email failed:", errorMessage);
-      alert(`❌ Email failed: ${errorMessage}`);
+      alert("✅ Email sent successfully.");
     }
-  };
-
-  const handleUploadDrive = async () => {
-    if (!folderId || !pdfBlob) return alert("Missing folder ID or PDF file.");
-
-    try {
-      const formData = new FormData();
-      const file = new File([pdfBlob], "Estimate_Report_Export.pdf", { type: "application/pdf" });
-
-      formData.append("folder_id", folderId);
-      formData.append("file", file);
-
-      const res = await axios.post(`${BACKEND_URL}/api/upload-estimate-drive`, formData);
-      alert("✅ Uploaded to Drive: " + res.data.file_id);
-    } catch (x) {
-      const errorMessage = x.response?.data ? JSON.stringify(x.response.data) : x.message;
-      console.error("❌ Drive upload failed:", errorMessage);
-      alert(`❌ Drive upload failed: ${errorMessage}`);
-    }
-  };
-
-  return (
-    <div className="p-4 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">Rebar Estimate Tools</h1>
-      {loading && (
-        <div className="text-blue-600 flex gap-2 items-center">
-          <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-blue-600 border-solid border-r-transparent"></div>
-          <span>Processing your files...</span>
-        </div>
-      )}
-
-      <input type="file" multiple onChange={handleFileChange} className="mb-2" />
-      <select value={mode} onChange={e => setMode(e.target.value)} className="border px-2 py-1 mb-4 ml-2">
-        <option value="estimate">Estimate</option>
-        <option value="barlist">Barlist</option>
-        <option value="drawing">Drawings</option>
-      </select>
-
-      <input type="email" placeholder="Customer Email" value={email} onChange={e => setEmail(e.target.value)} className="border px-2 py-1 rounded w-full mb-2" />
-      <input type="text" placeholder="Project Name" value={projectName} onChange={e => setProjectName(e.target.value)} className="border px-2 py-1 rounded w-full mb-2" />
-      <textarea placeholder="AI Notes" value={notes} onChange={e => setNotes(e.target.value)} className="border px-2 py-1 rounded w-full mb-4" />
-
-      <button onClick={handleSubmit} className="bg-blue-600 text-white px-4 py-2 rounded">Submit</button>
-
-      {jsonOutput && (
-        <div className="mt-6">
-          <h2 className="text-xl font-semibold mb-2 capitalize">{mode} Output</h2>
-          <div className="overflow-auto bg-white p-4 shadow rounded">
-            <pre className="text-xs whitespace-pre-wrap break-words">{JSON.stringify(jsonOutput, null, 2)}</pre>
-          </div>
-
-          {mode === "estimate" && (
-            <div className="mt-4 space-y-3">
-              {pdfBlob && (
-                <a
-                  href={URL.createObjectURL(pdfBlob)}
-                  download="Estimate_Report_Export.pdf"
-                  className="bg-gray-200 inline-block text-blue-700 px-3 py-1 rounded"
-                >
-                  📄 Download PDF
-                </a>
-              )}
-              <button onClick={handleSendEmail} className="bg-green-600 text-white px-3 py-1 rounded ml-2">Send PDF via Gmail</button>
-              <div>
-                <input type="text" value={folderId} onChange={e => setFolderId(e.target.value)} placeholder="Google Drive Folder ID" className="border px-2 py-1" />
-                <button onClick={handleUploadDrive} className="bg-gray-700 text-white px-3 py-1 rounded ml-2">Upload to Google Drive</button>
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  );
-}
