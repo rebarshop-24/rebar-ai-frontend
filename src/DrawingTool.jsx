@@ -1,3 +1,4 @@
+// PATCHED DrawingTool.jsx with smart notes, inline PDF preview, and fixed email + drive logic
 import React, { useState } from 'react';
 import axios from 'axios';
 
@@ -32,10 +33,14 @@ export default function DrawingTool() {
 
       setJsonOutput(res.data);
 
-      // 🔍 Smart AI Notes Prompt
       let smartNotes = "✅ AI Estimate generated successfully.";
-      if (res.data?.inferred || res.data?.missingDimensions || res.data?.confidence < 0.95) {
+      const aiNotes = res.data?.raw?.["NOTES & CLARIFICATIONS"] || "";
+      const lowConfidence = res.data?.confidence < 0.95 || res.data?.inferred || res.data?.missingDimensions;
+      if (lowConfidence) {
         smartNotes += "\n⚠️ Some dimensions (e.g., wall size) were inferred or unclear. Please confirm or upload a detailed drawing.";
+      }
+      if (aiNotes) {
+        smartNotes += `\n\n${aiNotes}`;
       }
       setNotes(smartNotes);
 
@@ -46,8 +51,7 @@ export default function DrawingTool() {
         setPdfBlob(exportRes.data);
       }
     } catch (x) {
-      const detail = x.response?.data?.detail || x.response?.data?.error || x.message;
-      console.error("❌ Submission failed:", detail);
+      const detail = x.response?.data?.detail || x.message;
       alert(`❌ Submission failed: ${detail}`);
     } finally {
       setLoading(false);
@@ -55,18 +59,18 @@ export default function DrawingTool() {
   };
 
   const handleSendEmail = async () => {
-    if (!email || !projectName || !pdfBlob) {
-      return alert("❌ Missing email, project name, or PDF.");
+    if (!email || !projectName || !jsonOutput) {
+      return alert("❌ Missing email, project name, or parsed data.");
     }
 
     try {
-      const formData = new FormData();
-      const file = new File([pdfBlob], "Estimate_Report_Export.pdf", { type: "application/pdf" });
+      const jsonFile = new File([JSON.stringify(jsonOutput)], "EstimateData.json", { type: "application/json" });
 
+      const formData = new FormData();
       formData.append("recipient", email);
       formData.append("project_name", projectName);
       formData.append("ai_message", notes);
-      formData.append("file", file);
+      formData.append("file", jsonFile);
 
       await axios.post(`${BACKEND_URL}/api/send-estimate-email`, formData, {
         headers: { "Content-Type": "multipart/form-data" }
@@ -74,8 +78,7 @@ export default function DrawingTool() {
 
       alert("✅ Email sent successfully.");
     } catch (x) {
-      const detail = x.response?.data?.detail || x.response?.data?.error || x.message;
-      console.error("❌ Email failed:", detail);
+      const detail = x.response?.data?.detail || x.message;
       alert(`❌ Email failed: ${detail}`);
     }
   };
@@ -90,14 +93,10 @@ export default function DrawingTool() {
       formData.append("folder_id", folderId);
       formData.append("file", file);
 
-      const res = await axios.post(`${BACKEND_URL}/api/upload-estimate-drive`, formData, {
-        headers: { "Content-Type": "multipart/form-data" }
-      });
-
+      const res = await axios.post(`${BACKEND_URL}/api/upload-estimate-drive`, formData);
       alert("✅ Uploaded to Drive. File ID: " + res.data.file_id);
     } catch (x) {
-      const detail = x.response?.data?.detail || x.response?.data?.error || x.message;
-      console.error("❌ Drive upload failed:", detail);
+      const detail = x.response?.data?.detail || x.message;
       alert(`❌ Drive upload failed: ${detail}`);
     }
   };
@@ -113,48 +112,18 @@ export default function DrawingTool() {
         </div>
       )}
 
-      <input
-        type="file"
-        multiple
-        accept=".pdf,image/*"
-        onChange={handleFileChange}
-        className="mb-2"
-      />
-
-      <select
-        value={mode}
-        onChange={e => setMode(e.target.value)}
-        className="border px-2 py-1 mb-4 ml-2"
-      >
+      <input type="file" multiple accept=".pdf,image/*" onChange={handleFileChange} className="mb-2" />
+      <select value={mode} onChange={e => setMode(e.target.value)} className="border px-2 py-1 mb-4 ml-2">
         <option value="estimate">Estimate</option>
         <option value="barlist">Barlist</option>
         <option value="drawing">Drawings</option>
       </select>
 
-      <input
-        type="email"
-        placeholder="Customer Email"
-        value={email}
-        onChange={e => setEmail(e.target.value)}
-        className="border px-2 py-1 rounded w-full mb-2"
-      />
-      <input
-        type="text"
-        placeholder="Project Name"
-        value={projectName}
-        onChange={e => setProjectName(e.target.value)}
-        className="border px-2 py-1 rounded w-full mb-2"
-      />
-      <textarea
-        placeholder="AI Notes"
-        value={notes}
-        onChange={e => setNotes(e.target.value)}
-        className="border px-2 py-1 rounded w-full mb-4"
-      />
+      <input type="email" placeholder="Customer Email" value={email} onChange={e => setEmail(e.target.value)} className="border px-2 py-1 rounded w-full mb-2" />
+      <input type="text" placeholder="Project Name" value={projectName} onChange={e => setProjectName(e.target.value)} className="border px-2 py-1 rounded w-full mb-2" />
+      <textarea placeholder="AI Notes" value={notes} onChange={e => setNotes(e.target.value)} className="border px-2 py-1 rounded w-full mb-4" />
 
-      <button onClick={handleSubmit} className="bg-blue-600 text-white px-4 py-2 rounded">
-        Submit
-      </button>
+      <button onClick={handleSubmit} className="bg-blue-600 text-white px-4 py-2 rounded">Submit</button>
 
       {pdfBlob && (
         <>
