@@ -32,6 +32,13 @@ export default function DrawingTool() {
 
       setJsonOutput(res.data);
 
+      // 🔍 Smart AI Notes Prompt
+      let smartNotes = "✅ AI Estimate generated successfully.";
+      if (res.data?.inferred || res.data?.missingDimensions || res.data?.confidence < 0.95) {
+        smartNotes += "\n⚠️ Some dimensions (e.g., wall size) were inferred or unclear. Please confirm or upload a detailed drawing.";
+      }
+      setNotes(smartNotes);
+
       if (mode === "estimate") {
         const exportRes = await axios.post(`${BACKEND_URL}/api/export-pdf`, res.data, {
           responseType: "blob"
@@ -149,51 +156,48 @@ export default function DrawingTool() {
         Submit
       </button>
 
-      {jsonOutput && (
-        <div className="mt-6">
-          <h2 className="text-xl font-semibold mb-2 capitalize">{mode} Output</h2>
-          <div className="overflow-auto bg-white p-4 shadow rounded">
-            <pre className="text-xs whitespace-pre-wrap break-words">
-              {JSON.stringify(jsonOutput, null, 2)}
-            </pre>
-          </div>
+      {pdfBlob && (
+        <>
+          <h3 className="text-lg font-semibold mt-4">📄 Estimate Preview</h3>
+          <iframe
+            title="Estimate Preview"
+            src={URL.createObjectURL(pdfBlob)}
+            width="100%"
+            height="600px"
+            className="border rounded my-2"
+          />
 
-          {mode === "estimate" && (
-            <div className="mt-4 space-y-3">
-              {pdfBlob && (
-                <a
-                  href={URL.createObjectURL(pdfBlob)}
-                  download="Estimate_Report_Export.pdf"
-                  className="bg-gray-200 inline-block text-blue-700 px-3 py-1 rounded"
-                >
-                  📄 Download PDF
-                </a>
-              )}
+          <div className="flex gap-2 mt-2 flex-wrap">
+            <a
+              href={URL.createObjectURL(pdfBlob)}
+              download="Estimate_Report_Export.pdf"
+              className="bg-gray-200 text-blue-700 px-3 py-1 rounded"
+            >
+              📥 Download PDF
+            </a>
+            <button
+              onClick={handleSendEmail}
+              className="bg-green-600 text-white px-3 py-1 rounded"
+            >
+              ✅ Confirm & Send to Client
+            </button>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={folderId}
+                onChange={e => setFolderId(e.target.value)}
+                placeholder="Google Drive Folder ID"
+                className="border px-2 py-1"
+              />
               <button
-                onClick={handleSendEmail}
-                className="bg-green-600 text-white px-3 py-1 rounded ml-2"
+                onClick={handleUploadDrive}
+                className="bg-gray-700 text-white px-3 py-1 rounded"
               >
-                Send PDF via Gmail
+                Upload to Google Drive
               </button>
-
-              <div>
-                <input
-                  type="text"
-                  value={folderId}
-                  onChange={e => setFolderId(e.target.value)}
-                  placeholder="Google Drive Folder ID"
-                  className="border px-2 py-1"
-                />
-                <button
-                  onClick={handleUploadDrive}
-                  className="bg-gray-700 text-white px-3 py-1 rounded ml-2"
-                >
-                  Upload to Google Drive
-                </button>
-              </div>
             </div>
-          )}
-        </div>
+          </div>
+        </>
       )}
     </div>
   );
