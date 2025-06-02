@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import Barlist from './components/Barlist';
+import EstimatePreview from './components/EstimatePreview';
 
 export default function DrawingTool() {
   const [files, setFiles] = useState([]);
@@ -49,7 +51,7 @@ export default function DrawingTool() {
       files.forEach(file => formData.append("files", file));
       formData.append("mode", mode);
 
-      const res = await axios.post(`${BACKEND_URL}/api/parse-blueprint-estimate`, formData, {
+      const res = await axios.post(`${BACKEND_URL}/api/parse-blueprint-${mode}`, formData, {
         headers: { "Content-Type": "multipart/form-data" }
       });
 
@@ -137,55 +139,6 @@ export default function DrawingTool() {
     }
   };
 
-  const renderBarlist = () => {
-    if (!jsonOutput || mode !== "barlist") return null;
-
-    // Extract barlist data from the API response
-    const barlist = jsonOutput.barlist || jsonOutput.bars || [];
-    
-    if (barlist.length === 0) {
-      return (
-        <div className="mt-6 p-4 bg-gray-50 rounded-lg text-gray-500 text-center">
-          No barlist data available. Please ensure you've uploaded a valid drawing with rebar details.
-        </div>
-      );
-    }
-
-    return (
-      <div className="mt-6">
-        <h3 className="text-lg font-semibold mb-4">Barlist Details</h3>
-        <div className="bg-white shadow-sm rounded-lg overflow-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bar Mark</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Length</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Length</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {barlist.map((bar, index) => (
-                <tr key={index} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{bar.mark || bar.bar_mark || '-'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{bar.size || bar.bar_size || '-'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{bar.type || bar.bar_type || '-'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{bar.length || bar.bar_length || '-'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{bar.quantity || bar.count || '-'}</td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {(bar.total_length || (bar.length && bar.quantity ? bar.length * bar.quantity : null) || '-')}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
-  };
-
   return (
     <div className="p-4 max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold mb-4">Rebar Estimate Tools</h1>
@@ -220,26 +173,30 @@ export default function DrawingTool() {
         <option value="drawing">Drawings</option>
       </select>
 
-      <input 
-        type="email" 
-        placeholder="Customer Email" 
-        value={email} 
-        onChange={e => setEmail(e.target.value)} 
-        className="border px-2 py-1 rounded w-full mb-2" 
-      />
-      <input 
-        type="text" 
-        placeholder="Project Name" 
-        value={projectName} 
-        onChange={e => setProjectName(e.target.value)} 
-        className="border px-2 py-1 rounded w-full mb-2" 
-      />
-      <textarea 
-        placeholder="AI Notes" 
-        value={notes} 
-        onChange={e => setNotes(e.target.value)} 
-        className="border px-2 py-1 rounded w-full mb-4" 
-      />
+      {mode === "estimate" && (
+        <>
+          <input 
+            type="email" 
+            placeholder="Customer Email" 
+            value={email} 
+            onChange={e => setEmail(e.target.value)} 
+            className="border px-2 py-1 rounded w-full mb-2" 
+          />
+          <input 
+            type="text" 
+            placeholder="Project Name" 
+            value={projectName} 
+            onChange={e => setProjectName(e.target.value)} 
+            className="border px-2 py-1 rounded w-full mb-2" 
+          />
+          <textarea 
+            placeholder="AI Notes" 
+            value={notes} 
+            onChange={e => setNotes(e.target.value)} 
+            className="border px-2 py-1 rounded w-full mb-4" 
+          />
+        </>
+      )}
 
       <button 
         onClick={handleSubmit} 
@@ -249,52 +206,17 @@ export default function DrawingTool() {
         Submit
       </button>
 
-      {mode === "barlist" ? renderBarlist() : null}
+      {mode === "barlist" && <Barlist data={jsonOutput} />}
 
-      {pdfBlob && mode === "estimate" && (
-        <>
-          <h3 className="text-lg font-semibold mt-4">📄 Estimate Preview</h3>
-          <iframe
-            title="Estimate Preview"
-            src={URL.createObjectURL(pdfBlob)}
-            width="100%"
-            height="600px"
-            className="border rounded my-2"
-          />
-
-          <div className="flex gap-2 mt-2 flex-wrap">
-            <a
-              href={URL.createObjectURL(pdfBlob)}
-              download="Estimate_Report_Export.pdf"
-              className="bg-gray-200 text-blue-700 px-3 py-1 rounded"
-            >
-              📥 Download PDF
-            </a>
-            <button
-              onClick={handleSendEmail}
-              disabled={loading}
-              className={`bg-green-600 text-white px-3 py-1 rounded ${loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-green-700'}`}
-            >
-              ✅ Confirm & Send to Client
-            </button>
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={folderId}
-                onChange={e => setFolderId(e.target.value)}
-                placeholder="Google Drive Folder ID"
-                className="border px-2 py-1"
-              />
-              <button
-                onClick={handleUploadDrive}
-                disabled={loading}
-                className={`bg-gray-700 text-white px-3 py-1 rounded ${loading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-800'}`}
-              >
-                Upload to Google Drive
-              </button>
-            </div>
-          </div>
-        </>
+      {mode === "estimate" && (
+        <EstimatePreview
+          pdfBlob={pdfBlob}
+          onSendEmail={handleSendEmail}
+          onUploadDrive={handleUploadDrive}
+          loading={loading}
+          folderId={folderId}
+          setFolderId={setFolderId}
+        />
       )}
     </div>
   );
