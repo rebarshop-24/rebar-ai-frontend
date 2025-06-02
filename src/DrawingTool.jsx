@@ -59,7 +59,9 @@ export default function DrawingTool() {
 
       if (mode === "barlist") {
         if (!res.data?.bars?.length) {
-          throw new Error("No rebar data found in the uploaded files. Please check the files and try again.");
+          setError("No rebar data found in the uploaded files for barlist mode. Please ensure your files contain rebar information and try again.");
+          setLoading(false);
+          return;
         }
         setBarlistData(res.data);
       } else if (mode === "estimate") {
