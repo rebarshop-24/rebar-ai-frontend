@@ -130,8 +130,8 @@ export default function DrawingTool() {
       setEmailError("Please enter a project name");
       return;
     }
-    if (!jsonOutput) {
-      setEmailError("No estimate data available to send");
+    if (!pdfBlob) {
+      setEmailError("No PDF estimate available to send");
       return;
     }
 
@@ -139,15 +139,13 @@ export default function DrawingTool() {
     setEmailError(null);
 
     try {
-      const jsonString = JSON.stringify(jsonOutput);
-      const jsonBlob = new Blob([jsonString], { type: 'application/json' });
-      const jsonFile = new File([jsonBlob], `${projectName}_estimate_data.json`, { type: 'application/json' });
+      const pdfFile = new File([pdfBlob], `${projectName}_Estimate.pdf`, { type: 'application/pdf' });
 
       const formData = new FormData();
       formData.append("recipient", email);
       formData.append("project_name", projectName);
       formData.append("ai_message", notes);
-      formData.append("file", jsonFile);
+      formData.append("file", pdfFile);
 
       const response = await api.post(`/api/send-estimate-email`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
