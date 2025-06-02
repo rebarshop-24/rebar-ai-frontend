@@ -11,14 +11,24 @@ export default function DrawingTool() {
   const [folderId, setFolderId] = useState("");
   const [mode, setMode] = useState("estimate");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [barlistData, setBarlistData] = useState(null);
 
   const BACKEND_URL = "https://rebar-ai-backend.onrender.com";
 
-  const handleFileChange = (e) => setFiles(Array.from(e.target.files));
+  const handleFileChange = (e) => {
+    setFiles(Array.from(e.target.files));
+    setError(null);
+  };
 
   const handleSubmit = async () => {
+    if (!files.length) {
+      setError("Please select at least one file");
+      return;
+    }
+
     setLoading(true);
+    setError(null);
     setJsonOutput(null);
     setPdfBlob(null);
     setBarlistData(null);
@@ -28,13 +38,16 @@ export default function DrawingTool() {
       files.forEach(file => formData.append("files", file));
       formData.append("mode", mode);
 
-      const res = await axios.post(`${BACKEND_URL}/api/parse-blueprint-estimate`, formData, {
+      const res = await axios.post(`${BACKEND_URL}/api/parse-blueprint-${mode}`, formData, {
         headers: { "Content-Type": "multipart/form-data" }
       });
 
       setJsonOutput(res.data);
 
       if (mode === "barlist") {
+        if (!res.data?.bars?.length) {
+          throw new Error("No rebar data found in the uploaded files. Please check the files and try again.");
+        }
         setBarlistData(res.data);
       } else if (mode === "estimate") {
         let smartNotes = "✅ AI Estimate generated successfully.";
@@ -53,9 +66,9 @@ export default function DrawingTool() {
         });
         setPdfBlob(exportRes.data);
       }
-    } catch (x) {
-      const detail = x.response?.data?.detail || x.message;
-      alert(`❌ Submission failed: ${detail}`);
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.detail || err.message || "Failed to process files");
     } finally {
       setLoading(false);
     }
@@ -176,18 +189,42 @@ export default function DrawingTool() {
         </div>
       )}
 
-      <input type="file" multiple accept=".pdf,image/*" onChange={handleFileChange} className="mb-2" />
-      <select value={mode} onChange={e => setMode(e.target.value)} className="border px-2 py-1 mb-4 ml-2">
-        <option value="estimate">Estimate</option>
-        <option value="barlist">Barlist</option>
-        <option value="drawing">Drawings</option>
-      </select>
+      {error && (
+        <div className="bg-red-50 text-red-800 p-3 rounded-md mb-4">
+          ❌ {error}
+        </div>
+      )}
+
+      <div className="flex items-center gap-2 mb-4">
+        <input 
+          type="file" 
+          multiple 
+          accept=".pdf,image/*" 
+          onChange={handleFileChange} 
+          className="flex-grow"
+        />
+        <select 
+          value={mode} 
+          onChange={e => setMode(e.target.value)} 
+          className="border px-2 py-1 rounded"
+        >
+          <option value="estimate">Estimate</option>
+          <option value="barlist">Barlist</option>
+          <option value="drawing">Drawings</option>
+        </select>
+      </div>
 
       <input type="email" placeholder="Customer Email" value={email} onChange={e => setEmail(e.target.value)} className="border px-2 py-1 rounded w-full mb-2" />
       <input type="text" placeholder="Project Name" value={projectName} onChange={e => setProjectName(e.target.value)} className="border px-2 py-1 rounded w-full mb-2" />
       <textarea placeholder="AI Notes" value={notes} onChange={e => setNotes(e.target.value)} className="border px-2 py-1 rounded w-full mb-4" />
 
-      <button onClick={handleSubmit} className="bg-blue-600 text-white px-4 py-2 rounded">Submit</button>
+      <button 
+        onClick={handleSubmit} 
+        disabled={loading || !files.length}
+        className={`bg-blue-600 text-white px-4 py-2 rounded ${loading || !files.length ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'}`}
+      >
+        Submit
+      </button>
 
       {mode === "barlist" && renderBarlist()}
 
