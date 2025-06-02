@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
-// Define backend URL based on environment
-const BACKEND_URL = import.meta.env.PROD 
-  ? 'https://rebar-ai-backend.onrender.com'
-  : '/api';
+// Always use remote backend URL
+const BACKEND_URL = 'https://rebar-ai-backend.onrender.com';
 
 // Create axios instance with retry logic and baseURL
 const api = axios.create({
