@@ -108,8 +108,8 @@ export default function DrawingTool() {
       setEmailError("Please enter a project name");
       return;
     }
-    if (!pdfBlob) {
-      setEmailError("No PDF file available to send");
+    if (!jsonOutput) {
+      setEmailError("No estimate data available to send");
       return;
     }
 
@@ -117,13 +117,16 @@ export default function DrawingTool() {
     setEmailError(null);
 
     try {
-      const formData = new FormData();
-      const file = new File([pdfBlob], `${projectName}_Estimate.pdf`, { type: "application/pdf" });
+      // Create a JSON string with proper encoding
+      const jsonString = JSON.stringify(jsonOutput);
+      const jsonBlob = new Blob([jsonString], { type: 'application/json' });
+      const jsonFile = new File([jsonBlob], `${projectName}_estimate_data.json`, { type: 'application/json' });
 
+      const formData = new FormData();
       formData.append("recipient", email);
       formData.append("project_name", projectName);
       formData.append("ai_message", notes);
-      formData.append("file", file);
+      formData.append("file", jsonFile);
 
       const response = await axios.post(`/api/send-estimate-email`, formData, {
         headers: { 
@@ -142,11 +145,8 @@ export default function DrawingTool() {
       }
     } catch (err) {
       console.error("Email error:", err);
-      const errorMessage = err.response?.data?.detail || err.message;
       setEmailError(
-        errorMessage.includes("Gmail authentication") 
-          ? "Email service is temporarily unavailable. Please try again later or download the PDF manually."
-          : `Failed to send email: ${errorMessage}`
+        "Email service is temporarily unavailable. Please try downloading the PDF manually."
       );
     } finally {
       setEmailSending(false);
@@ -288,7 +288,7 @@ export default function DrawingTool() {
                   Sending...
                 </>
               ) : (
-                '✅ Confirm & Send to Client'
+                '✅ Send to Client'
               )}
             </button>
             <div className="flex gap-2">
@@ -316,62 +316,58 @@ export default function DrawingTool() {
         </>
       )}
 
-      {mode === "barlist" && (
+      {mode === "barlist" && barlistData?.bars?.length > 0 && (
         <div className="mt-6 bg-white p-6 rounded-lg shadow-md">
           <h2 className="text-xl font-semibold mb-4">Bar List</h2>
-          {barlistData?.bars?.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bar Mark</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bar Size</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Length (ft)</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Length (ft)</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Weight (lb/ft)</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Weight (lb)</th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Shape</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {barlistData.bars.map((bar, index) => {
-                    const weightPerFoot = {
-                      '10M': 0.528,
-                      '15M': 1.055,
-                      '20M': 1.583,
-                      '25M': 2.638,
-                      '30M': 3.693,
-                      '35M': 5.275,
-                      '45M': 7.912,
-                      '55M': 13.188
-                    };
-                    const weight = weightPerFoot[bar.size] || 0;
-                    const lengthInFeet = bar.length / 12;
-                    const totalLength = lengthInFeet * bar.count;
-                    const totalWeight = weight * totalLength;
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bar Mark</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bar Size</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Length (ft)</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Length (ft)</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Weight (lb/ft)</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Weight (lb)</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Shape</th>
+                </tr>
+              </thead>
+              <tbody className="bg-white divide-y divide-gray-200">
+                {barlistData.bars.map((bar, index) => {
+                  const weightPerFoot = {
+                    '10M': 0.528,
+                    '15M': 1.055,
+                    '20M': 1.583,
+                    '25M': 2.638,
+                    '30M': 3.693,
+                    '35M': 5.275,
+                    '45M': 7.912,
+                    '55M': 13.188
+                  };
+                  const weight = weightPerFoot[bar.size] || 0;
+                  const lengthInFeet = bar.length / 12;
+                  const totalLength = lengthInFeet * bar.count;
+                  const totalWeight = weight * totalLength;
 
-                    return (
-                      <tr key={index}>
-                        <td className="px-6 py-4 whitespace-nowrap">{bar.mark}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">{bar.size}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">{bar.type || 'Straight'}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">{lengthInFeet.toFixed(2)}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">{bar.count}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">{totalLength.toFixed(2)}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">{weight.toFixed(3)}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">{totalWeight.toFixed(2)}</td>
-                        <td className="px-6 py-4 whitespace-nowrap">{bar.shape || '-'}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="text-gray-500">No bar list data available</div>
-          )}
+                  return (
+                    <tr key={index}>
+                      <td className="px-6 py-4 whitespace-nowrap">{bar.mark}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">{bar.size}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">{bar.type || 'Straight'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">{lengthInFeet.toFixed(2)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">{bar.count}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">{totalLength.toFixed(2)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">{weight.toFixed(3)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">{totalWeight.toFixed(2)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap">{bar.shape || '-'}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
     </div>
