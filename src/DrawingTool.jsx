@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
-// Always use remote backend URL
-const BACKEND_URL = 'https://rebar-ai-backend.onrender.com';
+// Use relative path for API requests (will be handled by Vite proxy)
+const BACKEND_URL = '';
 
 // Create axios instance with retry logic and baseURL
 const api = axios.create({
