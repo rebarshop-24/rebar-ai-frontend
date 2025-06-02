@@ -16,6 +16,10 @@ export default function DrawingTool() {
   const [emailSending, setEmailSending] = useState(false);
   const [emailError, setEmailError] = useState(null);
 
+  // Configure axios defaults
+  axios.defaults.timeout = 30000; // 30 second timeout
+  axios.defaults.maxContentLength = 50 * 1024 * 1024; // 50MB max content size
+
   const handleFileChange = (e) => {
     setFiles(Array.from(e.target.files));
     setError(null);
@@ -39,8 +43,17 @@ export default function DrawingTool() {
       formData.append("mode", mode);
 
       const res = await axios.post(`/api/parse-blueprint-${mode}`, formData, {
-        headers: { "Content-Type": "multipart/form-data" }
+        headers: { 
+          "Content-Type": "multipart/form-data"
+        },
+        validateStatus: function (status) {
+          return status >= 200 && status < 500;
+        }
       });
+
+      if (res.status !== 200) {
+        throw new Error(res.data?.detail || 'Failed to process files');
+      }
 
       setJsonOutput(res.data);
 
@@ -62,13 +75,25 @@ export default function DrawingTool() {
         setNotes(smartNotes);
 
         const exportRes = await axios.post(`/api/export-pdf`, res.data, {
-          responseType: "blob"
+          responseType: "blob",
+          validateStatus: function (status) {
+            return status >= 200 && status < 500;
+          }
         });
+
+        if (exportRes.status !== 200) {
+          throw new Error('Failed to generate PDF');
+        }
+
         setPdfBlob(exportRes.data);
       }
     } catch (err) {
-      console.error(err);
-      setError(err.response?.data?.detail || err.message || "Failed to process files");
+      console.error("Submission error:", err);
+      setError(
+        err.response?.data?.detail || 
+        err.message || 
+        "Failed to process files. Please try again or contact support if the issue persists."
+      );
     } finally {
       setLoading(false);
     }
@@ -104,9 +129,9 @@ export default function DrawingTool() {
         headers: { 
           "Content-Type": "multipart/form-data"
         },
-        timeout: 60000, // 60 second timeout
+        timeout: 60000,
         validateStatus: function (status) {
-          return status >= 200 && status < 500; // Don't reject if the status code is < 500
+          return status >= 200 && status < 500;
         }
       });
 
@@ -129,82 +154,33 @@ export default function DrawingTool() {
   };
 
   const handleUploadDrive = async () => {
-    if (!folderId || !pdfBlob) return alert("❌ Missing folder ID or PDF file.");
+    if (!folderId || !pdfBlob) {
+      alert("❌ Missing folder ID or PDF file.");
+      return;
+    }
 
     try {
       const formData = new FormData();
-      const file = new File([pdfBlob], "Estimate_Report_Export.pdf", { type: "application/pdf" });
+      const file = new File([pdfBlob], `${projectName}_Estimate.pdf`, { type: "application/pdf" });
 
       formData.append("folder_id", folderId);
       formData.append("file", file);
 
-      const res = await axios.post(`/api/upload-estimate-drive`, formData);
-      alert("✅ Uploaded to Drive. File ID: " + res.data.file_id);
-    } catch (x) {
-      const detail = x.response?.data?.detail || x.message;
-      alert(`❌ Drive upload failed: ${detail}`);
+      const res = await axios.post(`/api/upload-estimate-drive`, formData, {
+        validateStatus: function (status) {
+          return status >= 200 && status < 500;
+        }
+      });
+
+      if (res.status === 200) {
+        alert("✅ Uploaded to Drive. File ID: " + res.data.file_id);
+      } else {
+        throw new Error(res.data?.detail || "Failed to upload to Drive");
+      }
+    } catch (err) {
+      console.error("Drive upload error:", err);
+      alert(`❌ Drive upload failed: ${err.response?.data?.detail || err.message}`);
     }
-  };
-
-  const renderBarlist = () => {
-    if (!barlistData) return null;
-
-    // RSIC standard weights in lb/ft
-    const weightPerFoot = {
-      '10M': 0.528,
-      '15M': 1.055,
-      '20M': 1.583,
-      '25M': 2.638,
-      '30M': 3.693,
-      '35M': 5.275,
-      '45M': 7.912,
-      '55M': 13.188
-    };
-
-    return (
-      <div className="mt-6 bg-white p-6 rounded-lg shadow-md">
-        <h2 className="text-xl font-semibold mb-4">Bar List</h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bar Mark</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bar Size</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Length (ft)</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Length (ft)</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Weight (lb/ft)</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Weight (lb)</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Shape</th>
-              </tr>
-            </thead>
-            <tbody className="bg-white divide-y divide-gray-200">
-              {barlistData.bars?.map((bar, index) => {
-                const weight = weightPerFoot[bar.size] || 0;
-                const lengthInFeet = bar.length / 12; // Convert inches to feet
-                const totalLength = lengthInFeet * bar.count;
-                const totalWeight = weight * totalLength;
-
-                return (
-                  <tr key={index}>
-                    <td className="px-6 py-4 whitespace-nowrap">{bar.mark}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">{bar.size}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">{bar.type || 'Straight'}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">{lengthInFeet.toFixed(2)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">{bar.count}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">{totalLength.toFixed(2)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">{weight.toFixed(3)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">{totalWeight.toFixed(2)}</td>
-                    <td className="px-6 py-4 whitespace-nowrap">{bar.shape || '-'}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    );
   };
 
   return (
@@ -340,7 +316,64 @@ export default function DrawingTool() {
         </>
       )}
 
-      {mode === "barlist" && renderBarlist()}
+      {mode === "barlist" && (
+        <div className="mt-6 bg-white p-6 rounded-lg shadow-md">
+          <h2 className="text-xl font-semibold mb-4">Bar List</h2>
+          {barlistData?.bars?.length > 0 ? (
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bar Mark</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bar Size</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Length (ft)</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Length (ft)</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Weight (lb/ft)</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Weight (lb)</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Shape</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {barlistData.bars.map((bar, index) => {
+                    const weightPerFoot = {
+                      '10M': 0.528,
+                      '15M': 1.055,
+                      '20M': 1.583,
+                      '25M': 2.638,
+                      '30M': 3.693,
+                      '35M': 5.275,
+                      '45M': 7.912,
+                      '55M': 13.188
+                    };
+                    const weight = weightPerFoot[bar.size] || 0;
+                    const lengthInFeet = bar.length / 12;
+                    const totalLength = lengthInFeet * bar.count;
+                    const totalWeight = weight * totalLength;
+
+                    return (
+                      <tr key={index}>
+                        <td className="px-6 py-4 whitespace-nowrap">{bar.mark}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">{bar.size}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">{bar.type || 'Straight'}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">{lengthInFeet.toFixed(2)}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">{bar.count}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">{totalLength.toFixed(2)}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">{weight.toFixed(3)}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">{totalWeight.toFixed(2)}</td>
+                        <td className="px-6 py-4 whitespace-nowrap">{bar.shape || '-'}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="text-gray-500">No bar list data available</div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
