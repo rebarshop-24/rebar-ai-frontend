@@ -8,7 +8,7 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/api': 'http://localhost:10000'
+      '/api': 'https://rebar-ai-backend.onrender.com'
     }
   }
 });
