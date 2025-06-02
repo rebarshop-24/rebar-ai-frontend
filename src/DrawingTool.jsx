@@ -1,9 +1,12 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
+// Define backend URL - use environment variable or fallback
+const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+
 // Create axios instance with retry logic and baseURL
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: BACKEND_URL,
   timeout: 30000,
   maxContentLength: 50 * 1024 * 1024,
   validateStatus: function (status) {
@@ -61,7 +64,7 @@ export default function DrawingTool() {
       files.forEach(file => formData.append("files", file));
       formData.append("mode", mode);
 
-      const endpoint = mode === "barlist" ? '/api/parse-blueprint-barlist' : '/api/parse-blueprint-estimate';
+      const endpoint = mode === "barlist" ? '/parse-blueprint-barlist' : '/parse-blueprint-estimate';
 
       const res = await api.post(endpoint, formData, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -93,7 +96,7 @@ export default function DrawingTool() {
         }
         setNotes(smartNotes);
 
-        const exportRes = await api.post(`/api/export-pdf`, res.data, {
+        const exportRes = await api.post(`/export-pdf`, res.data, {
           responseType: "blob",
           retry: 2,
           retryDelay: 1000
@@ -110,7 +113,7 @@ export default function DrawingTool() {
       const errorMessage = err.response?.status === 404
         ? "This feature is not yet available. Please try estimate mode instead."
         : err.response?.status === 502
-        ? "The service is temporarily unavailable. Please try again in a few moments."
+        ? "The backend service is temporarily unavailable. Please check that the backend server is running and try again in a few moments."
         : err.response?.data?.detail || err.message || "Failed to process files. Please try again or contact support if the issue persists.";
       setError(errorMessage);
     } finally {
@@ -146,7 +149,7 @@ export default function DrawingTool() {
       formData.append("ai_message", notes);
       formData.append("file", jsonFile);
 
-      const response = await api.post(`/api/send-estimate-email`, formData, {
+      const response = await api.post(`/send-estimate-email`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
         timeout: 60000,
         retry: 2,
@@ -183,7 +186,7 @@ export default function DrawingTool() {
       formData.append("folder_id", folderId);
       formData.append("file", file);
 
-      const res = await api.post(`/api/upload-estimate-drive`, formData, {
+      const res = await api.post(`/upload-estimate-drive`, formData, {
         retry: 2,
         retryDelay: 1000
       });
