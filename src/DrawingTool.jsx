@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
-// Define backend URL - use environment variable or fallback
-const BACKEND_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+// Define backend URL to use Vite proxy
+const BACKEND_URL = '/api';
 
 // Create axios instance with retry logic and baseURL
 const api = axios.create({
