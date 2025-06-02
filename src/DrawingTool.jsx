@@ -1,4 +1,3 @@
-// PATCHED DrawingTool.jsx with smart notes, inline PDF preview, and fixed email + drive logic
 import React, { useState } from 'react';
 import axios from 'axios';
 
@@ -12,6 +11,7 @@ export default function DrawingTool() {
   const [folderId, setFolderId] = useState("");
   const [mode, setMode] = useState("estimate");
   const [loading, setLoading] = useState(false);
+  const [barlistData, setBarlistData] = useState(null);
 
   const BACKEND_URL = "https://rebar-ai-backend.onrender.com";
 
@@ -21,6 +21,7 @@ export default function DrawingTool() {
     setLoading(true);
     setJsonOutput(null);
     setPdfBlob(null);
+    setBarlistData(null);
 
     try {
       const formData = new FormData();
@@ -33,18 +34,20 @@ export default function DrawingTool() {
 
       setJsonOutput(res.data);
 
-      let smartNotes = "✅ AI Estimate generated successfully.";
-      const aiNotes = res.data?.raw?.["NOTES & CLARIFICATIONS"] || "";
-      const lowConfidence = res.data?.confidence < 0.95 || res.data?.inferred || res.data?.missingDimensions;
-      if (lowConfidence) {
-        smartNotes += "\n⚠️ Some dimensions (e.g., wall size) were inferred or unclear. Please confirm or upload a detailed drawing.";
-      }
-      if (aiNotes) {
-        smartNotes += `\n\n${aiNotes}`;
-      }
-      setNotes(smartNotes);
+      if (mode === "barlist") {
+        setBarlistData(res.data);
+      } else if (mode === "estimate") {
+        let smartNotes = "✅ AI Estimate generated successfully.";
+        const aiNotes = res.data?.raw?.["NOTES & CLARIFICATIONS"] || "";
+        const lowConfidence = res.data?.confidence < 0.95 || res.data?.inferred || res.data?.missingDimensions;
+        if (lowConfidence) {
+          smartNotes += "\n⚠️ Some dimensions (e.g., wall size) were inferred or unclear. Please confirm or upload a detailed drawing.";
+        }
+        if (aiNotes) {
+          smartNotes += `\n\n${aiNotes}`;
+        }
+        setNotes(smartNotes);
 
-      if (mode === "estimate") {
         const exportRes = await axios.post(`${BACKEND_URL}/api/export-pdf`, res.data, {
           responseType: "blob"
         });
@@ -101,6 +104,40 @@ export default function DrawingTool() {
     }
   };
 
+  const renderBarlist = () => {
+    if (!barlistData) return null;
+
+    return (
+      <div className="mt-6 bg-white p-6 rounded-lg shadow-md">
+        <h2 className="text-xl font-semibold mb-4">Barlist Details</h2>
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bar Mark</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Length</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Count</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Shape</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {barlistData.bars?.map((bar, index) => (
+                <tr key={index}>
+                  <td className="px-6 py-4 whitespace-nowrap">{bar.mark}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">{bar.size}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">{bar.length}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">{bar.count}</td>
+                  <td className="px-6 py-4 whitespace-nowrap">{bar.shape}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="p-4 max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold mb-4">Rebar Estimate Tools</h1>
@@ -125,7 +162,9 @@ export default function DrawingTool() {
 
       <button onClick={handleSubmit} className="bg-blue-600 text-white px-4 py-2 rounded">Submit</button>
 
-      {pdfBlob && (
+      {mode === "barlist" && renderBarlist()}
+
+      {mode === "estimate" && pdfBlob && (
         <>
           <h3 className="text-lg font-semibold mt-4">📄 Estimate Preview</h3>
           <iframe
