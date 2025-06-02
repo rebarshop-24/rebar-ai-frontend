@@ -23,6 +23,7 @@ export default function DrawingTool() {
   const handleFileChange = (e) => {
     setFiles(Array.from(e.target.files));
     setError(null);
+    setBarlistData(null); // Reset barlist data when files change
   };
 
   const handleSubmit = async () => {
@@ -42,7 +43,10 @@ export default function DrawingTool() {
       files.forEach(file => formData.append("files", file));
       formData.append("mode", mode);
 
-      const res = await axios.post('/api/parse-blueprint-estimate', formData, {
+      // Use the correct endpoint based on mode
+      const endpoint = mode === "barlist" ? '/api/parse-blueprint-barlist' : '/api/parse-blueprint-estimate';
+
+      const res = await axios.post(endpoint, formData, {
         headers: { 
           "Content-Type": "multipart/form-data"
         },
@@ -59,8 +63,7 @@ export default function DrawingTool() {
 
       if (mode === "barlist") {
         if (!res.data?.bars?.length) {
-          setError("No rebar data found in the uploaded files for barlist mode. Please ensure your files contain rebar information and try again.");
-          setLoading(false);
+          setError("No rebar data found in the uploaded files. Please check that your files contain rebar information and try again.");
           return;
         }
         setBarlistData(res.data);
@@ -91,11 +94,10 @@ export default function DrawingTool() {
       }
     } catch (err) {
       console.error("Submission error:", err);
-      setError(
-        err.response?.data?.detail || 
-        err.message || 
-        "Failed to process files. Please try again or contact support if the issue persists."
-      );
+      const errorMessage = err.response?.status === 404
+        ? "This feature is not yet available. Please try estimate mode instead."
+        : err.response?.data?.detail || err.message || "Failed to process files. Please try again or contact support if the issue persists.";
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -212,7 +214,11 @@ export default function DrawingTool() {
         />
         <select 
           value={mode} 
-          onChange={e => setMode(e.target.value)} 
+          onChange={e => {
+            setMode(e.target.value);
+            setError(null);
+            setBarlistData(null);
+          }} 
           className="border px-2 py-1 rounded"
         >
           <option value="estimate">Estimate</option>
