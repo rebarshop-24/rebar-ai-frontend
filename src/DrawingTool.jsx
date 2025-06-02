@@ -55,18 +55,18 @@ export default function DrawingTool() {
 
       setJsonOutput(res.data);
 
-      let smartNotes = "✅ AI Estimate generated successfully.";
-      const aiNotes = res.data?.raw?.["NOTES & CLARIFICATIONS"] || "";
-      const lowConfidence = res.data?.confidence < 0.95 || res.data?.inferred || res.data?.missingDimensions;
-      if (lowConfidence) {
-        smartNotes += "\n⚠️ Some dimensions (e.g., wall size) were inferred or unclear. Please confirm or upload a detailed drawing.";
-      }
-      if (aiNotes) {
-        smartNotes += `\n\n${aiNotes}`;
-      }
-      setNotes(smartNotes);
-
       if (mode === "estimate") {
+        let smartNotes = "✅ AI Estimate generated successfully.";
+        const aiNotes = res.data?.raw?.["NOTES & CLARIFICATIONS"] || "";
+        const lowConfidence = res.data?.confidence < 0.95 || res.data?.inferred || res.data?.missingDimensions;
+        if (lowConfidence) {
+          smartNotes += "\n⚠️ Some dimensions (e.g., wall size) were inferred or unclear. Please confirm or upload a detailed drawing.";
+        }
+        if (aiNotes) {
+          smartNotes += `\n\n${aiNotes}`;
+        }
+        setNotes(smartNotes);
+
         const exportRes = await axios.post(`${BACKEND_URL}/api/export-pdf`, res.data, {
           responseType: "blob"
         });
@@ -137,6 +137,42 @@ export default function DrawingTool() {
     }
   };
 
+  const renderBarlist = () => {
+    if (!jsonOutput || mode !== "barlist") return null;
+
+    return (
+      <div className="mt-6">
+        <h3 className="text-lg font-semibold mb-4">Barlist Details</h3>
+        <div className="bg-white shadow-sm rounded-lg overflow-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bar Mark</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Length</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Length</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {jsonOutput.bars?.map((bar, index) => (
+                <tr key={index} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{bar.mark || '-'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{bar.size || '-'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{bar.type || '-'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{bar.length || '-'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{bar.quantity || '-'}</td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{bar.total_length || '-'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="p-4 max-w-4xl mx-auto">
       <h1 className="text-2xl font-bold mb-4">Rebar Estimate Tools</h1>
@@ -200,7 +236,9 @@ export default function DrawingTool() {
         Submit
       </button>
 
-      {pdfBlob && (
+      {mode === "barlist" ? renderBarlist() : null}
+
+      {pdfBlob && mode === "estimate" && (
         <>
           <h3 className="text-lg font-semibold mt-4">📄 Estimate Preview</h3>
           <iframe
