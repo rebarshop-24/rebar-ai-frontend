@@ -1,6 +1,27 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
+// Create axios instance with retry logic
+const api = axios.create({
+  timeout: 30000,
+  maxContentLength: 50 * 1024 * 1024,
+  validateStatus: function (status) {
+    return status >= 200 && status < 500;
+  }
+});
+
+// Add retry interceptor
+api.interceptors.response.use(null, async (error) => {
+  const { config } = error;
+  if (!config || !config.retry) {
+    return Promise.reject(error);
+  }
+  config.retry -= 1;
+  const delayMs = config.retryDelay || 1000;
+  await new Promise(resolve => setTimeout(resolve, delayMs));
+  return api(config);
+});
+
 export default function DrawingTool() {
   const [files, setFiles] = useState([]);
   const [jsonOutput, setJsonOutput] = useState(null);
@@ -16,14 +37,10 @@ export default function DrawingTool() {
   const [emailSending, setEmailSending] = useState(false);
   const [emailError, setEmailError] = useState(null);
 
-  // Configure axios defaults
-  axios.defaults.timeout = 30000; // 30 second timeout
-  axios.defaults.maxContentLength = 50 * 1024 * 1024; // 50MB max content size
-
   const handleFileChange = (e) => {
     setFiles(Array.from(e.target.files));
     setError(null);
-    setBarlistData(null); // Reset barlist data when files change
+    setBarlistData(null);
   };
 
   const handleSubmit = async () => {
@@ -43,16 +60,12 @@ export default function DrawingTool() {
       files.forEach(file => formData.append("files", file));
       formData.append("mode", mode);
 
-      // Use the correct endpoint based on mode
       const endpoint = mode === "barlist" ? '/api/parse-blueprint-barlist' : '/api/parse-blueprint-estimate';
 
-      const res = await axios.post(endpoint, formData, {
-        headers: { 
-          "Content-Type": "multipart/form-data"
-        },
-        validateStatus: function (status) {
-          return status >= 200 && status < 500;
-        }
+      const res = await api.post(endpoint, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+        retry: 3,
+        retryDelay: 1000
       });
 
       if (res.status !== 200) {
@@ -79,11 +92,10 @@ export default function DrawingTool() {
         }
         setNotes(smartNotes);
 
-        const exportRes = await axios.post(`/api/export-pdf`, res.data, {
+        const exportRes = await api.post(`/api/export-pdf`, res.data, {
           responseType: "blob",
-          validateStatus: function (status) {
-            return status >= 200 && status < 500;
-          }
+          retry: 2,
+          retryDelay: 1000
         });
 
         if (exportRes.status !== 200) {
@@ -96,6 +108,8 @@ export default function DrawingTool() {
       console.error("Submission error:", err);
       const errorMessage = err.response?.status === 404
         ? "This feature is not yet available. Please try estimate mode instead."
+        : err.response?.status === 502
+        ? "The service is temporarily unavailable. Please try again in a few moments."
         : err.response?.data?.detail || err.message || "Failed to process files. Please try again or contact support if the issue persists.";
       setError(errorMessage);
     } finally {
@@ -121,7 +135,6 @@ export default function DrawingTool() {
     setEmailError(null);
 
     try {
-      // Create a JSON string with proper encoding
       const jsonString = JSON.stringify(jsonOutput);
       const jsonBlob = new Blob([jsonString], { type: 'application/json' });
       const jsonFile = new File([jsonBlob], `${projectName}_estimate_data.json`, { type: 'application/json' });
@@ -132,14 +145,11 @@ export default function DrawingTool() {
       formData.append("ai_message", notes);
       formData.append("file", jsonFile);
 
-      const response = await axios.post(`/api/send-estimate-email`, formData, {
-        headers: { 
-          "Content-Type": "multipart/form-data"
-        },
+      const response = await api.post(`/api/send-estimate-email`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
         timeout: 60000,
-        validateStatus: function (status) {
-          return status >= 200 && status < 500;
-        }
+        retry: 2,
+        retryDelay: 1000
       });
 
       if (response.status === 200) {
@@ -150,7 +160,9 @@ export default function DrawingTool() {
     } catch (err) {
       console.error("Email error:", err);
       setEmailError(
-        "Email service is temporarily unavailable. Please try downloading the PDF manually."
+        err.response?.status === 502
+          ? "Email service is temporarily unavailable. Please try again in a few moments."
+          : "Failed to send email. Please try downloading the PDF manually."
       );
     } finally {
       setEmailSending(false);
@@ -170,10 +182,9 @@ export default function DrawingTool() {
       formData.append("folder_id", folderId);
       formData.append("file", file);
 
-      const res = await axios.post(`/api/upload-estimate-drive`, formData, {
-        validateStatus: function (status) {
-          return status >= 200 && status < 500;
-        }
+      const res = await api.post(`/api/upload-estimate-drive`, formData, {
+        retry: 2,
+        retryDelay: 1000
       });
 
       if (res.status === 200) {
@@ -183,7 +194,11 @@ export default function DrawingTool() {
       }
     } catch (err) {
       console.error("Drive upload error:", err);
-      alert(`❌ Drive upload failed: ${err.response?.data?.detail || err.message}`);
+      alert(
+        err.response?.status === 502
+          ? "Drive upload service is temporarily unavailable. Please try again in a few moments."
+          : `❌ Drive upload failed: ${err.response?.data?.detail || err.message}`
+      );
     }
   };
 
