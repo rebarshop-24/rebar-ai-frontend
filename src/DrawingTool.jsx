@@ -15,6 +15,7 @@ export default function DrawingTool() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [barlistData, setBarlistData] = useState(null);
+  const [emailSending, setEmailSending] = useState(false);
 
   const handleFileChange = (e) => {
     setFiles(Array.from(e.target.files));
@@ -75,27 +76,34 @@ export default function DrawingTool() {
   };
 
   const handleSendEmail = async () => {
-    if (!email || !projectName || !jsonOutput) {
-      return alert("❌ Missing email, project name, or parsed data.");
+    if (!email || !projectName || !pdfBlob) {
+      return alert("❌ Missing email, project name, or PDF file.");
     }
 
+    setEmailSending(true);
     try {
-      const jsonFile = new File([JSON.stringify(jsonOutput)], "EstimateData.json", { type: "application/json" });
-
       const formData = new FormData();
+      const file = new File([pdfBlob], "Estimate_Report_Export.pdf", { type: "application/pdf" });
+
       formData.append("recipient", email);
       formData.append("project_name", projectName);
       formData.append("ai_message", notes);
-      formData.append("file", jsonFile);
+      formData.append("file", file);
 
       await axios.post(`${BACKEND_URL}/api/send-estimate-email`, formData, {
-        headers: { "Content-Type": "multipart/form-data" }
+        headers: { 
+          "Content-Type": "multipart/form-data"
+        },
+        timeout: 30000 // 30 second timeout
       });
 
       alert("✅ Email sent successfully.");
-    } catch (x) {
-      const detail = x.response?.data?.detail || x.message;
-      alert(`❌ Email failed: ${detail}`);
+    } catch (err) {
+      console.error(err);
+      const errorMessage = err.response?.data?.detail || err.message;
+      alert(`❌ Failed to send email: ${errorMessage}. Please try again later.`);
+    } finally {
+      setEmailSending(false);
     }
   };
 
@@ -226,8 +234,6 @@ export default function DrawingTool() {
         Submit
       </button>
 
-      {mode === "barlist" && renderBarlist()}
-
       {mode === "estimate" && pdfBlob && (
         <>
           <h3 className="text-lg font-semibold mt-4">📄 Estimate Preview</h3>
@@ -249,9 +255,21 @@ export default function DrawingTool() {
             </a>
             <button
               onClick={handleSendEmail}
-              className="bg-green-600 text-white px-3 py-1 rounded"
+              disabled={emailSending}
+              className={`${
+                emailSending 
+                  ? 'bg-gray-400 cursor-not-allowed' 
+                  : 'bg-green-600 hover:bg-green-700'
+              } text-white px-3 py-1 rounded flex items-center gap-2`}
             >
-              ✅ Confirm & Send to Client
+              {emailSending ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-white border-solid border-r-transparent"></div>
+                  Sending...
+                </>
+              ) : (
+                '✅ Confirm & Send to Client'
+              )}
             </button>
             <div className="flex gap-2">
               <input
@@ -271,6 +289,8 @@ export default function DrawingTool() {
           </div>
         </>
       )}
+
+      {mode === "barlist" && renderBarlist()}
     </div>
   );
 }
