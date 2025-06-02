@@ -64,7 +64,7 @@ export default function DrawingTool() {
       files.forEach(file => formData.append("files", file));
       formData.append("mode", mode);
 
-      const endpoint = mode === "barlist" ? '/parse-blueprint-barlist' : '/parse-blueprint-estimate';
+      const endpoint = mode === "barlist" ? '/api/parse-blueprint-barlist' : '/api/parse-blueprint-estimate';
 
       const res = await api.post(endpoint, formData, {
         headers: { "Content-Type": "multipart/form-data" },
@@ -96,7 +96,7 @@ export default function DrawingTool() {
         }
         setNotes(smartNotes);
 
-        const exportRes = await api.post(`/export-pdf`, res.data, {
+        const exportRes = await api.post(`/api/export-pdf`, res.data, {
           responseType: "blob",
           retry: 2,
           retryDelay: 1000
@@ -149,7 +149,7 @@ export default function DrawingTool() {
       formData.append("ai_message", notes);
       formData.append("file", jsonFile);
 
-      const response = await api.post(`/send-estimate-email`, formData, {
+      const response = await api.post(`/api/send-estimate-email`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
         timeout: 60000,
         retry: 2,
@@ -186,7 +186,7 @@ export default function DrawingTool() {
       formData.append("folder_id", folderId);
       formData.append("file", file);
 
-      const res = await api.post(`/upload-estimate-drive`, formData, {
+      const res = await api.post(`/api/upload-estimate-drive`, formData, {
         retry: 2,
         retryDelay: 1000
       });
