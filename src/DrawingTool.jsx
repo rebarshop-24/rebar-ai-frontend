@@ -109,28 +109,53 @@ export default function DrawingTool() {
 
     return (
       <div className="mt-6 bg-white p-6 rounded-lg shadow-md">
-        <h2 className="text-xl font-semibold mb-4">Barlist Details</h2>
+        <h2 className="text-xl font-semibold mb-4">Bar List</h2>
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bar Mark</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Size</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Bar Size</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Length</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Count</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Length</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Weight/ft</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Weight</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Shape</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {barlistData.bars?.map((bar, index) => (
-                <tr key={index}>
-                  <td className="px-6 py-4 whitespace-nowrap">{bar.mark}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{bar.size}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{bar.length}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{bar.count}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">{bar.shape}</td>
-                </tr>
-              ))}
+              {barlistData.bars?.map((bar, index) => {
+                const weightPerFoot = {
+                  '#3': 0.376,
+                  '#4': 0.668,
+                  '#5': 1.043,
+                  '#6': 1.502,
+                  '#7': 2.044,
+                  '#8': 2.670,
+                  '#9': 3.400,
+                  '#10': 4.303,
+                  '#11': 5.313,
+                }[bar.size] || 0;
+                
+                const totalLength = bar.length * bar.count;
+                const totalWeight = weightPerFoot * totalLength;
+
+                return (
+                  <tr key={index}>
+                    <td className="px-6 py-4 whitespace-nowrap">{bar.mark}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{bar.size}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{bar.type || 'Straight'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{bar.length}"</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{bar.count}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{totalLength}"</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{weightPerFoot.toFixed(3)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{totalWeight.toFixed(2)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap">{bar.shape || '-'}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
