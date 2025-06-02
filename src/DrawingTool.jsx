@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
-// Define backend URL to use Vite proxy
-const BACKEND_URL = '/api';
+// Define backend URL based on environment
+const BACKEND_URL = import.meta.env.PROD 
+  ? 'https://rebar-ai-backend.onrender.com'
+  : '/api';
 
 // Create axios instance with retry logic and baseURL
 const api = axios.create({
