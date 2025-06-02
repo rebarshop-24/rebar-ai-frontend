@@ -16,6 +16,7 @@ export default function DrawingTool() {
   const [error, setError] = useState(null);
   const [barlistData, setBarlistData] = useState(null);
   const [emailSending, setEmailSending] = useState(false);
+  const [emailError, setEmailError] = useState(null);
 
   const handleFileChange = (e) => {
     setFiles(Array.from(e.target.files));
@@ -76,32 +77,54 @@ export default function DrawingTool() {
   };
 
   const handleSendEmail = async () => {
-    if (!email || !projectName || !pdfBlob) {
-      return alert("❌ Missing email, project name, or PDF file.");
+    if (!email) {
+      setEmailError("Please enter a recipient email address");
+      return;
+    }
+    if (!projectName) {
+      setEmailError("Please enter a project name");
+      return;
+    }
+    if (!pdfBlob) {
+      setEmailError("No PDF file available to send");
+      return;
     }
 
     setEmailSending(true);
+    setEmailError(null);
+
     try {
       const formData = new FormData();
-      const file = new File([pdfBlob], "Estimate_Report_Export.pdf", { type: "application/pdf" });
+      const file = new File([pdfBlob], `${projectName}_Estimate.pdf`, { type: "application/pdf" });
 
       formData.append("recipient", email);
       formData.append("project_name", projectName);
       formData.append("ai_message", notes);
       formData.append("file", file);
 
-      await axios.post(`${BACKEND_URL}/api/send-estimate-email`, formData, {
+      const response = await axios.post(`${BACKEND_URL}/api/send-estimate-email`, formData, {
         headers: { 
           "Content-Type": "multipart/form-data"
         },
-        timeout: 30000 // 30 second timeout
+        timeout: 60000, // 60 second timeout
+        validateStatus: function (status) {
+          return status >= 200 && status < 500; // Don't reject if the status code is < 500
+        }
       });
 
-      alert("✅ Email sent successfully.");
+      if (response.status === 200) {
+        alert("✅ Email sent successfully!");
+      } else {
+        throw new Error(response.data?.detail || "Failed to send email");
+      }
     } catch (err) {
-      console.error(err);
+      console.error("Email error:", err);
       const errorMessage = err.response?.data?.detail || err.message;
-      alert(`❌ Failed to send email: ${errorMessage}. Please try again later.`);
+      setEmailError(
+        errorMessage.includes("Gmail authentication") 
+          ? "Email service is temporarily unavailable. Please try again later or download the PDF manually."
+          : `Failed to send email: ${errorMessage}`
+      );
     } finally {
       setEmailSending(false);
     }
@@ -222,9 +245,32 @@ export default function DrawingTool() {
         </select>
       </div>
 
-      <input type="email" placeholder="Customer Email" value={email} onChange={e => setEmail(e.target.value)} className="border px-2 py-1 rounded w-full mb-2" />
-      <input type="text" placeholder="Project Name" value={projectName} onChange={e => setProjectName(e.target.value)} className="border px-2 py-1 rounded w-full mb-2" />
-      <textarea placeholder="AI Notes" value={notes} onChange={e => setNotes(e.target.value)} className="border px-2 py-1 rounded w-full mb-4" />
+      <input 
+        type="email" 
+        placeholder="Customer Email" 
+        value={email} 
+        onChange={e => {
+          setEmail(e.target.value);
+          setEmailError(null);
+        }} 
+        className={`border px-2 py-1 rounded w-full mb-2 ${emailError && !email ? 'border-red-500' : ''}`}
+      />
+      <input 
+        type="text" 
+        placeholder="Project Name" 
+        value={projectName} 
+        onChange={e => {
+          setProjectName(e.target.value);
+          setEmailError(null);
+        }} 
+        className={`border px-2 py-1 rounded w-full mb-2 ${emailError && !projectName ? 'border-red-500' : ''}`}
+      />
+      <textarea 
+        placeholder="AI Notes" 
+        value={notes} 
+        onChange={e => setNotes(e.target.value)} 
+        className="border px-2 py-1 rounded w-full mb-4" 
+      />
 
       <button 
         onClick={handleSubmit} 
@@ -248,7 +294,7 @@ export default function DrawingTool() {
           <div className="flex gap-2 mt-2 flex-wrap">
             <a
               href={URL.createObjectURL(pdfBlob)}
-              download="Estimate_Report_Export.pdf"
+              download={`${projectName}_Estimate.pdf`}
               className="bg-gray-200 text-blue-700 px-3 py-1 rounded"
             >
               📥 Download PDF
@@ -287,6 +333,12 @@ export default function DrawingTool() {
               </button>
             </div>
           </div>
+
+          {emailError && (
+            <div className="mt-2 bg-red-50 text-red-800 p-3 rounded-md">
+              ❌ {emailError}
+            </div>
+          )}
         </>
       )}
 
