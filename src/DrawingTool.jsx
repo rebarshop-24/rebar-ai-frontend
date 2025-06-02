@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 
-// Create axios instance with retry logic
+// Create axios instance with retry logic and baseURL
 const api = axios.create({
+  baseURL: 'https://rebar-ai-backend.onrender.com',
   timeout: 30000,
   maxContentLength: 50 * 1024 * 1024,
   validateStatus: function (status) {
