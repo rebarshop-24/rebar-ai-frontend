@@ -13,7 +13,7 @@ export default function SupervisorPanel() {
 
     setLoading(true);
     try {
-      await axios.post("/api/log-alert", {
+      await axios.post("/api/alert/log", {
         message: alertMsg,
         timestamp: new Date().toISOString(),
         severity: "high"

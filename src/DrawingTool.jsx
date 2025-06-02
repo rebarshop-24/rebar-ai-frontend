@@ -49,7 +49,7 @@ export default function DrawingTool() {
       files.forEach(file => formData.append("files", file));
       formData.append("mode", mode);
 
-      const res = await axios.post(`/api/parse-blueprint-${mode}`, formData, {
+      const res = await axios.post('/api/parse-blueprints', formData, {
         headers: { "Content-Type": "multipart/form-data" }
       });
 

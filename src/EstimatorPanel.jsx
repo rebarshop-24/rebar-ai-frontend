@@ -16,7 +16,7 @@ export default function EstimatorPanel() {
         created_at: new Date().toISOString()
       };
       
-      const res = await axios.post("/api/sync-job", payload);
+      const res = await axios.post("/api/job/create", payload);
       setStatus(`✅ Job Created: ID ${res.data.job_id}`);
     } catch (err) {
       console.error(err);
