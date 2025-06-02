@@ -15,8 +15,6 @@ export default function DrawingTool() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const BACKEND_URL = "https://rebar-ai-backend.onrender.com";
-
   const handleFileChange = (e) => {
     setFiles(Array.from(e.target.files));
     setError(null);
@@ -51,7 +49,7 @@ export default function DrawingTool() {
       files.forEach(file => formData.append("files", file));
       formData.append("mode", mode);
 
-      const res = await axios.post(`${BACKEND_URL}/api/parse-blueprint-${mode}`, formData, {
+      const res = await axios.post(`/api/parse-blueprint-${mode}`, formData, {
         headers: { "Content-Type": "multipart/form-data" }
       });
 
@@ -69,7 +67,7 @@ export default function DrawingTool() {
         }
         setNotes(smartNotes);
 
-        const exportRes = await axios.post(`${BACKEND_URL}/api/export-pdf`, res.data, {
+        const exportRes = await axios.post('/api/export-pdf', res.data, {
           responseType: "blob"
         });
         setPdfBlob(exportRes.data);
@@ -100,7 +98,7 @@ export default function DrawingTool() {
       formData.append("ai_message", notes);
       formData.append("file", jsonFile);
 
-      await axios.post(`${BACKEND_URL}/api/send-estimate-email`, formData, {
+      await axios.post('/api/send-estimate-email', formData, {
         headers: { "Content-Type": "multipart/form-data" }
       });
 
@@ -129,7 +127,7 @@ export default function DrawingTool() {
       formData.append("folder_id", folderId);
       formData.append("file", file);
 
-      const res = await axios.post(`${BACKEND_URL}/api/upload-estimate-drive`, formData);
+      const res = await axios.post('/api/upload-estimate-drive', formData);
       alert("✅ Uploaded to Drive. File ID: " + res.data.file_id);
     } catch (err) {
       setError(getErrorMessage(err));
