@@ -7,7 +7,7 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'https://rebar-ai-backend.onrender.com',
+        target: 'http://localhost:10000',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '')
       }
