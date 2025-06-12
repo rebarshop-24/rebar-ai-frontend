@@ -1,6 +1,22 @@
 import React from 'react';
 
 export default function EstimatePreview({ pdfBlob, onSendEmail, onUploadDrive, loading, folderId, setFolderId }) {
+  const [pdfUrl, setPdfUrl] = useState(null);
+
+  useEffect(() => {
+    if (!pdfBlob) {
+      setPdfUrl(null);
+      return;
+    }
+
+    const url = URL.createObjectURL(pdfBlob);
+    setPdfUrl(url);
+
+    return () => {
+      URL.revokeObjectURL(url);
+    };
+  }, [pdfBlob]);
+
   if (!pdfBlob) return null;
 
   return (
@@ -8,7 +24,7 @@ export default function EstimatePreview({ pdfBlob, onSendEmail, onUploadDrive, l
       <h3 className="text-lg font-semibold mt-4">📄 Estimate Preview</h3>
       <iframe
         title="Estimate Preview"
-        src={URL.createObjectURL(pdfBlob)}
+        src={pdfUrl}
         width="100%"
         height="600px"
         className="border rounded my-2"
@@ -16,7 +32,7 @@ export default function EstimatePreview({ pdfBlob, onSendEmail, onUploadDrive, l
 
       <div className="flex gap-2 mt-2 flex-wrap">
         <a
-          href={URL.createObjectURL(pdfBlob)}
+          href={pdfUrl}
           download="Estimate_Report_Export.pdf"
           className="bg-gray-200 text-blue-700 px-3 py-1 rounded"
         >
